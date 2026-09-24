@@ -6,6 +6,7 @@
 #   ./build-covers.sh covers/ caching           ...only paths containing "caching"
 #   ./build-covers.sh --samples [style…]        the style samples in styles/samples/ (+ poster.png = frame 0)
 #   FRAMES=90 ./build-covers.sh …               fewer frames (default 140 = 7 s loop at 20 fps)
+#   PNG=1 ./build-covers.sh …                   also write cover.png (frame 0): a still for OG images, blog headers
 # With no path, looks in $COVERS_DIR, else ./covers.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -17,6 +18,7 @@ for spec in "${specs[@]}"; do
   dir="$(dirname "$spec")"; f="$dir/cover.frames"
   node render.js "$spec" "$dir/cover" "$frames"
   [ $samples = 1 ] && cp "$f/000.png" "$dir/poster.png"
+  [ "${PNG:-0}" = 1 ] && cp "$f/000.png" "$dir/cover.png"
   ffmpeg -y -loglevel error -framerate $fps -i "$f/%03d.png" \
     -vf "palettegen=max_colors=128:stats_mode=diff" "$dir/cover.pal.png"
   ffmpeg -y -loglevel error -framerate $fps -i "$f/%03d.png" -i "$dir/cover.pal.png" \

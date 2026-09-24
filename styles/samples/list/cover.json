@@ -1,0 +1,16 @@
+{
+  "_": "Illustrative example, not data.",
+  "style": "list",
+  "brand": "rishabh0111.github.io",
+  "kicker": "RELIABILITY · CHECKLIST",
+  "title": "Five things every retry needs",
+  "titleAccent": "and the one teams skip",
+  "items": [
+    { "text": "A limit",               "sub": "three tries, not forever",      "mark": "check" },
+    { "text": "Backoff with jitter",   "sub": "or every client retries at once", "mark": "check" },
+    { "text": "A timeout per attempt", "sub": "a hung call is not a failure yet", "mark": "check" },
+    { "text": "Only safe errors",      "sub": "never retry a 400",              "mark": "check" },
+    { "text": "an idempotency key",    "sub": "the one that stops double charges", "redact": true }
+  ],
+  "footnote": "Number five is the one that pages you."
+}

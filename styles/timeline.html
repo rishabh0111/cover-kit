@@ -1,0 +1,74 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>timeline cover</title>
+<body>
+<script src="base.js"></script>
+<script>
+/* TIMELINE — events over dates, top to bottom: how a system evolved, a
+   migration, an incident. `events[]` take `date`, `label`, optional `sub` and
+   `tone` ("bad" red, "good" green; accent otherwise). `now` is the index of
+   the present (default: the last event); events after it are the future:
+   hollow dots, dashed spine, muted text. Motion: the spine drains, then
+   refills to `now`, each dot popping and its row brightening as the line
+   reaches it; the `now` dot keeps a ring pulsing. Frame 0 = filled to `now`.
+   ≤ 6 events, labels ≤ 5 words.                                             */
+const {el,text,fit,phase,ease,clamp,TAU}=CS, S=window.SPEC;
+CS.run(()=>{
+const W=S.width||1200, H=S.height||1200, M=64;
+const C={bg:S.ground||"#24102F",ink:S.ink||"#F7F0FF",muted:"#A993C0",line:"#4A3160",accent:S.accent||"#FFA24C",bad:"#FF5C7A",good:"#5EE6A8"};
+const {svg,defs}=CS.setup(W,H,C.bg);
+
+/* title: second line in accent */
+let y=M;
+if(S.kicker){ y+=26; svg.appendChild(text(M,y,S.kicker,{fill:C.accent,"font-family":"JetBrains Mono","font-size":22,"font-weight":800,"letter-spacing":3})); y+=20; }
+const TS=S.titleSize||74;
+[S.title,S.titleAccent].filter(Boolean).forEach((ln,i)=>{ y+=TS*1.06;
+  const t=text(M,y,ln,{fill:i?C.accent:C.ink,"font-family":"Space Grotesk","font-weight":700,"letter-spacing":-1.5,"data-g":"title"});
+  svg.appendChild(t); fit(t,W-2*M,TS,36); });
+
+/* rows: date column | spine | label */
+const ev=S.events||[], n=ev.length, now=S.now==null?n-1:Math.min(n-1,S.now);
+const top=y+70, bot=H-(S.footnote?130:100), rh=(bot-top)/Math.max(1,n);
+const SX=M+(S.dateWidth||230), LS=S.labelSize||54;
+const tone=e=>e.tone==="bad"?C.bad:e.tone==="good"?C.good:C.accent;
+const Y=ev.map((e,i)=>top+rh*(i+.5));
+/* spine: dashed track for the whole run, solid fill up to `now` */
+svg.appendChild(el("line",{x1:SX,x2:SX,y1:Y[0],y2:Y[n-1],stroke:C.line,"stroke-width":6,"stroke-dasharray":"2 12","stroke-linecap":"round"}));
+const base=el("line",{x1:SX,x2:SX,y1:Y[0],y2:Y[now],stroke:C.line,"stroke-width":6,"stroke-linecap":"round"}); svg.appendChild(base);
+const fill=el("line",{x1:SX,x2:SX,y1:Y[0],y2:Y[now],stroke:C.accent,"stroke-width":6,"stroke-linecap":"round"}); svg.appendChild(fill);
+const ring=el("circle",{cx:SX,cy:Y[now],r:20,fill:"none",stroke:tone(ev[now]||{}),"stroke-width":3,opacity:0}); svg.appendChild(ring);
+const rows=ev.map((e,i)=>{
+  const fut=i>now, col=tone(e), yy=Y[i], g=el("g",{}); svg.appendChild(g);
+  const d=text(SX-52,yy+11,e.date,{"text-anchor":"end",fill:fut?C.muted:C.ink,"font-family":"JetBrains Mono","font-size":S.dateSize||32,"font-weight":700,"data-g":"ev"+i});
+  g.appendChild(d); fit(d,SX-52-M,S.dateSize||32,16);
+  const dot=el("circle",{cx:SX,cy:yy,r:15,fill:fut?C.bg:col,stroke:fut?C.muted:col,"stroke-width":fut?4:0}); g.appendChild(dot);
+  const hasSub=!!e.sub, ly=hasSub?yy+4:yy+LS*.36;
+  const lb=text(SX+44,ly,e.label,{fill:fut?C.muted:C.ink,"font-family":"Space Grotesk","font-size":LS,"font-weight":700,"letter-spacing":-.5,"font-style":fut?"italic":"normal","data-g":"ev"+i});
+  g.appendChild(lb); fit(lb,W-M-SX-44,LS,24);
+  let sb=null; if(hasSub){ sb=text(SX+44,ly+44,e.sub,{fill:C.muted,"font-family":"Space Grotesk","font-size":30,"font-weight":500,"data-g":"ev"+i}); g.appendChild(sb); fit(sb,W-M-SX-44,30,16); }
+  return {g,dot,fut,yy,col};
+});
+
+if(S.footnote) svg.appendChild(text(M,H-44,S.footnote,{fill:C.ink,"font-family":"Instrument Serif","font-style":"italic","font-size":34}));
+CS.brand(svg,S,{fill:C.muted,bar:C.accent},W,H-44);
+
+/* schedule: drain over [.04,.12], refill to `now` over [.14,.72], hold */
+window.setFrame=(f,total)=>{
+  const t=f/total, span=Y[now]-Y[0];
+  const drain=ease.inOut(phase(t,.04,.12)), grow=ease.inOut(phase(t,.14,.72));
+  const reach=t<.04?1:t<.14?1-drain:grow, head=Y[0]+span*reach;
+  fill.setAttribute("y2",(n>1?head:Y[0]).toFixed(1));
+  rows.forEach((r,i)=>{
+    if(r.fut){ r.g.setAttribute("opacity",1); return; }
+    const lit=t<.04||head>=r.yy-1;
+    const pop=t>=.14&&t<.8?Math.sin(Math.PI*clamp((head-r.yy)/(rh*.6))):0;
+    r.dot.setAttribute("r",(lit?15+7*pop:11).toFixed(2));
+    r.dot.setAttribute("fill",lit?r.col:C.bg); r.dot.setAttribute("stroke",r.col); r.dot.setAttribute("stroke-width",lit?0:4);
+    r.g.setAttribute("opacity",lit?1:.4);
+  });
+  /* the present keeps pulsing once the line has reached it */
+  const arrived=t<.04||t>=.72, p=(t*4)%1;
+  ring.setAttribute("r",(18+16*ease.out(p)).toFixed(1)); ring.setAttribute("opacity",arrived?(.8*(1-p)).toFixed(2):0);
+};
+});
+</script>

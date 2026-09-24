@@ -11,7 +11,8 @@ const fs = require("fs");
 const path = require("path");
 
 const TONE = { flow: "light", terminal: "dark", bignumber: "colour", chart: "light", versus: "split",
-               sketch: "light", poster: "colour", sequence: "dark", anatomy: "light" };
+               sketch: "light", poster: "colour", sequence: "dark", anatomy: "light",
+               list: "colour", timeline: "dark" };
 const args = process.argv.slice(2);
 const flag = (name, withValue) => {
   const i = args.indexOf(name); if (i < 0) return undefined;

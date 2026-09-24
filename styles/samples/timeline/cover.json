@@ -1,0 +1,18 @@
+{
+  "_": "Illustrative example, not data.",
+  "style": "timeline",
+  "brand": "rishabh0111.github.io",
+  "kicker": "POSTMORTEM · ONE COLUMN",
+  "title": "How one ID column",
+  "titleAccent": "outgrew three designs",
+  "now": 4,
+  "events": [
+    { "date": "2019", "label": "INT auto-increment", "sub": "one database, nothing to decide" },
+    { "date": "2021", "label": "Ran out of INTs",   "sub": "2,147,483,647 rows, then errors", "tone": "bad" },
+    { "date": "2021", "label": "BIGINT migration",  "sub": "three weeks, one long lock" },
+    { "date": "2023", "label": "A second region",   "sub": "two writers, two sequences", "tone": "bad" },
+    { "date": "2024", "label": "Snowflake IDs",     "sub": "unique without asking anyone", "tone": "good" },
+    { "date": "next", "label": "Sortable UUIDs?",   "sub": "the migration nobody has scheduled" }
+  ],
+  "footnote": "Every fix was right for its year."
+}

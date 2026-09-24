@@ -3,11 +3,12 @@
 Animated GIF covers for technical posts, rendered from a JSON spec.
 
 Write a `cover.json` describing one idea from your post — a query, a number, a
-race, an ID taken apart — pick one of nine styles, and get a 1200×1200,
-7-second looping GIF. Built for LinkedIn image posts, but the output is a plain
-GIF, so it works anywhere a square animated image does.
+race, an ID taken apart, a list, a timeline — pick one of eleven styles, and
+get a 1200×1200, 7-second looping GIF (plus an optional PNG still). Built for
+LinkedIn image posts, but the output is a plain GIF, so it works anywhere a
+square animated image does.
 
-![The nine styles, frame 0 of each sample](docs/styles.jpg)
+![The eleven styles, frame 0 of each sample](docs/styles.jpg)
 
 Open [`styles/gallery.html`](styles/gallery.html) in a browser to see every
 style animating.
@@ -17,7 +18,7 @@ style animating.
 A moving image stands out in a feed of static ones, and a cover that shows
 *one comprehensible idea* earns the click better than a headline or a full
 architecture diagram. Covers that all share one template teach followers to
-skip them, so the kit has nine styles with different grounds, and a linter
+skip them, so the kit has eleven styles with different grounds, and a linter
 that stops you posting the same shape twice in a row.
 
 ## Requirements
@@ -49,6 +50,8 @@ npm install
    ./peek.sh covers/2026-10-01-my-post        # -> peek.png beside the spec
    ./build-covers.sh covers/2026-10-01-my-post # -> cover.gif beside the spec
    ```
+5. Need a still too (Open Graph image, blog header, a platform without GIFs)?
+   `PNG=1 ./build-covers.sh …` also writes `cover.png`, the finished frame 0.
 
 If the build prints `OVERLAPS:`, the page found text on text (or text off the
 canvas). Fix the spec — shorter labels or a looser layout — never the font size
@@ -70,6 +73,8 @@ path); keep your specs in this repo or anywhere else.
 | `poster` | yellow | states an opinion, rule or myth-bust | ≤ 8 words |
 | `sequence` | navy blueprint | depends on order: requests, retries, races, handshakes | ≤ 7 messages |
 | `anatomy` | cream, neo-brutalist | takes one artefact apart: an ID, a token, a URL | ≤ 4 parts |
+| `list` | coral | is a list: "5 lessons", "7 mistakes", a checklist | ≤ 6 items × ≤ 6 words |
+| `timeline` | aubergine | happens over dates: an evolution, a migration, an incident | ≤ 6 events |
 
 The spec's `"style"` picks the template. Each template in `styles/` documents
 its own keys in its header comment, and `styles/samples/<style>/cover.json` is a
@@ -152,8 +157,8 @@ the loop closes seamlessly. `build-covers.sh` turns the frames into a GIF with
 an ffmpeg palette pass (128 colours, Bayer dither).
 
 Defaults: 1200 × 1200, 140 frames at 20 fps (`FRAMES=90 ./build-covers.sh …`
-for a shorter loop). Most covers land between 150 KB and 1.5 MB. The layouts
-are tuned for a square; `width`/`height` in a spec change the canvas, but check
+for a shorter loop; `PNG=1` for a frame-0 still beside the GIF). Most covers
+land between 150 KB and 1.5 MB. The layouts are tuned for a square; `width`/`height` in a spec change the canvas, but check
 the result.
 
 ## Adding a style

@@ -1,6 +1,6 @@
 # Cover styles
 
-Nine styles for an animated post cover. Pick one per post by its content,
+Eleven styles for an animated post cover. Pick one per post by its content,
 then check the calendar so the feed never shows the same shape twice in a row.
 Open `styles/gallery.html` to see every style animating, and the upcoming
 posts as a feed (`node check-rotation.js --plan --feed` refreshes that feed).
@@ -23,6 +23,8 @@ thumbnail size before anyone reads a word. The brand mark stays constant.
 | `poster` | `styles/poster.html` | yellow | states an opinion, rule or myth-bust | ≤ 8 words |
 | `sequence` | `styles/sequence.html` | navy blueprint | depends on order: requests, retries, races, handshakes | ≤ 7 messages |
 | `anatomy` | `styles/anatomy.html` | cream, neo-brutalist | takes one artefact apart: an ID, a token, a URL | ≤ 4 parts |
+| `list` | `styles/list.html` | coral | is a list: "5 lessons", "7 mistakes", a checklist | ≤ 6 items × ≤ 6 words |
+| `timeline` | `styles/timeline.html` | aubergine | happens over dates: an evolution, a migration, an incident | ≤ 6 events |
 
 `flow` is documented in `README.md` and measured in `STYLE.md`. Each file in
 `styles/` documents its own spec keys in its header comment, and
@@ -34,12 +36,13 @@ Take the first yes:
 
 1. Is the post **one number**? → `bignumber` (`chart` if it only makes sense on a curve)
 2. **One piece of code or output**? → `terminal`
-3. Is **order** the point? → `sequence`
+3. Is **order** the point? → `sequence` between actors, `timeline` across dates
 4. **One artefact's structure**? → `anatomy`
 5. **A vs B**? → `versus`
-6. **An opinion or rule** in 8 words? → `poster`
-7. **A model to redraw**? → `sketch`
-8. Several parts interacting → `flow`
+6. **A list** of lessons, mistakes or steps? → `list` (redact the one worth clicking for)
+7. **An opinion or rule** in 8 words? → `poster`
+8. **A model to redraw**? → `sketch`
+9. Several parts interacting → `flow`
 
 If the rotation check rejects it, take the second-best fit.
 
@@ -89,6 +92,10 @@ composition, which is what LinkedIn (and most feeds) show if a GIF freezes.
   their message is in flight.
 - **anatomy** — bit parts go live: the `counter` ticks, the `time` part rolls
   over and resets it, and the assembled value is recomputed from the bits.
+- **list** — an ink bar walks the rows in order, flipping each to paper on
+  ink; marks punch as their row lights, and a `redact` bar shimmers.
+- **timeline** — the spine drains and refills to `now`, each dot popping as
+  the line reaches it; the `now` dot keeps a ring pulsing.
 
 ## Shared by every style
 
@@ -111,6 +118,7 @@ composition, which is what LinkedIn (and most feeds) show if a GIF freezes.
 ./build-covers.sh covers/<date>-<slug>   a post (its cover.json names the style)
 ./build-covers.sh covers/ caching        every cover under covers/ whose path contains "caching"
 ./build-covers.sh --samples [style]      the samples in styles/samples/ (+ poster.png)
+PNG=1 ./build-covers.sh covers/…         also write cover.png, frame 0 as a still
 ./peek.sh covers/<date>-<slug>           20-frame render, six frames tiled to peek.png
 ./peek.sh --samples <style>
 ```
