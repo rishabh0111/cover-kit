@@ -1,0 +1,90 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>big number cover</title>
+<body>
+<script src="base.js"></script>
+<script>
+/* BIG NUMBER — one number, full-bleed colour field. `steps` is the arithmetic
+   (or the before → after) that produces it: the number rolls through each
+   step's value while a stepper along the bottom lights up, then holds on the
+   last step. Frame 0 shows the last step.                                   */
+const {el,text,fit,phase,ease,clamp,TAU}=CS, S=window.SPEC;
+CS.run(()=>{
+const W=S.width||1200, H=S.height||1200, M=56;
+const C={bg:S.ground||"#1D3BFF",ink:S.ink||"#FFFFFF",accent:S.accent||"#D8FF3E",soft:S.soft||"rgba(255,255,255,.62)",line:S.line||"rgba(255,255,255,.28)"};
+const {svg,defs}=CS.setup(W,H,C.bg);
+
+/* faint oversized grid for texture: two big quarter circles */
+svg.appendChild(el("circle",{cx:W+80,cy:-80,r:520,fill:"none",stroke:C.line,"stroke-width":2}));
+svg.appendChild(el("circle",{cx:W+80,cy:-80,r:640,fill:"none",stroke:C.line,"stroke-width":2,opacity:.5}));
+
+/* kicker + title (up to two lines, second in accent) */
+let y=M+40;
+if(S.kicker){ svg.appendChild(text(M,y,S.kicker,{fill:C.accent,"font-family":"JetBrains Mono","font-size":22,"font-weight":700,"letter-spacing":3})); y+=34; }
+const TS=S.titleSize||64;
+[S.title,S.titleAccent].filter(Boolean).forEach((ln,i)=>{ y+=TS*1.08;
+  const t=text(M,y,ln,{fill:i?C.accent:C.ink,"font-family":"Space Grotesk","font-weight":700,"letter-spacing":-1.5,"data-g":"title"});
+  svg.appendChild(t); fit(t,W-2*M,TS,34); });
+
+/* the number: clipped window so values can roll through it */
+const steps=S.steps, last=steps[steps.length-1];
+const NY=S.numberY||740, NS=S.numberSize||440;
+const clip=el("clipPath",{id:"nclip"}); clip.appendChild(el("rect",{x:0,y:NY-NS*0.86,width:W,height:NS*0.98})); defs.appendChild(clip);
+const ring=el("circle",{cx:W/2,cy:NY-NS*0.36,r:10,fill:"none",stroke:C.accent,"stroke-width":4,opacity:0}); svg.appendChild(ring);
+const ng=el("g",{"clip-path":"url(#nclip)"}); svg.appendChild(ng);
+const mkNum=()=>{ const t=text(W/2,NY,"",{"text-anchor":"middle",fill:C.ink,"font-family":"Anton","font-size":NS,class:"free"}); ng.appendChild(t); return t; };
+const nA=mkNum(), nB=mkNum();
+/* size once against the widest value so the number never changes size mid-loop */
+let ns=NS; steps.forEach(s=>{ nA.textContent=s.value; nA.setAttribute("font-size",ns);
+  while(nA.getComputedTextLength()>W-2*M&&ns>120){ ns-=4; nA.setAttribute("font-size",ns); } });
+[nA,nB].forEach(t=>t.setAttribute("font-size",ns));
+/* a comma's tail hangs below the baseline, and the number is exempt from the
+   overlap check, so measure the real ink and keep the clip and the unit below it */
+const US=S.unitSize||52, cx2d=document.createElement("canvas").getContext("2d"); cx2d.font=`${ns}px Anton`;
+const desc=Math.max(0,...steps.map(s=>cx2d.measureText(String(s.value)).actualBoundingBoxDescent));
+clip.firstChild.setAttribute("height",Math.max(NS*0.98,NS*0.86+desc+6));
+const UY=NY+Math.max(70,Math.ceil(desc+18+US*0.72));
+const unit=text(W/2,UY,"",{"text-anchor":"middle",fill:C.accent,"font-family":"Space Grotesk","font-size":S.unitSize||52,"font-weight":700,"data-g":"unit"});
+const unitB=text(W/2,UY,"",{"text-anchor":"middle",fill:C.accent,"font-family":"Space Grotesk","font-size":S.unitSize||52,"font-weight":700,"data-g":"unit"});
+svg.appendChild(unit); svg.appendChild(unitB);
+
+/* stepper along the bottom */
+const sy=S.stepperY||H-230, sx0=M+60, sx1=W-M-60, n=steps.length, gap=(sx1-sx0)/(n-1);
+svg.appendChild(el("line",{x1:sx0,x2:sx1,y1:sy,y2:sy,stroke:C.line,"stroke-width":4,"stroke-linecap":"round"}));
+const prog=el("line",{x1:sx0,x2:sx0,y1:sy,y2:sy,stroke:C.accent,"stroke-width":6,"stroke-linecap":"round"}); svg.appendChild(prog);
+const dots=steps.map((s,i)=>{ const x=sx0+i*gap;
+  if(i&&s.op) svg.appendChild(text(x-gap/2,sy-22,s.op,{"text-anchor":"middle",fill:C.soft,"font-family":"JetBrains Mono","font-size":26,"font-weight":700}));
+  const d=el("circle",{cx:x,cy:sy,r:12,fill:C.bg,stroke:C.accent,"stroke-width":4}); svg.appendChild(d);
+  const v=text(x,sy+58,s.chip||s.value,{"text-anchor":"middle",fill:C.ink,"font-family":"Space Grotesk","font-size":40,"font-weight":700}); svg.appendChild(v);
+  const u=text(x,sy+92,s.chipUnit||s.unit,{"text-anchor":"middle",fill:C.soft,"font-family":"Space Grotesk","font-size":24,"font-weight":500}); svg.appendChild(u);
+  fit(u,gap-16,24,14);
+  return {x,d,v,u}; });
+if(S.footnote) svg.appendChild(text(M,H-44,S.footnote,{fill:C.ink,"font-family":"Instrument Serif","font-style":"italic","font-size":36}));
+CS.brand(svg,S,{fill:C.soft,bar:C.accent},W,H-44);
+
+/* schedule: steps 0..n-1 each own a slot over [.03,.62]; the rest holds the last */
+const T0=.03, T1=.62, slot=(T1-T0)/n;
+const at=t=>{ if(t<T0||t>=T1) return {i:n-1,u:1}; const k=(t-T0)/slot, i=Math.floor(k); return {i,u:k-i}; };
+window.setFrame=(f,total)=>{
+  const t=f/total, {i,u}=at(t), prev=i>0?i-1:n-1;
+  /* roll: previous value slides up and out over the first 30% of the slot */
+  const r=ease.inOut(clamp(u/.3)), off=ns*0.9;
+  const showRoll=t>=T0&&t<T1&&r<1;
+  nA.textContent=steps[i].value; nA.setAttribute("y",(NY+(showRoll?off*(1-r):0)).toFixed(1));
+  nB.textContent=steps[prev].value; nB.setAttribute("y",(NY-off*r).toFixed(1)); nB.setAttribute("opacity",showRoll?1:0);
+  unit.textContent=steps[i].unit; unit.setAttribute("opacity",showRoll?r:1);
+  unitB.textContent=steps[prev].unit; unitB.setAttribute("opacity",showRoll?1-r:0);
+  /* ring bursts as each value lands */
+  const land=t>=T0&&t<T1?clamp((u-.3)/.4):clamp((t-T1)/.08);
+  ring.setAttribute("r",(NS*0.25+NS*0.5*ease.out(land)).toFixed(1));
+  ring.setAttribute("opacity",(land>0&&land<1?.6*(1-land):0).toFixed(2));
+  /* stepper */
+  const pos=t>=T0&&t<T1?i+Math.min(1,u/.3)-1:n-1;
+  prog.setAttribute("x2",(sx0+Math.max(0,pos)*gap).toFixed(1));
+  dots.forEach((d,k)=>{ const on=k<=i||t>=T1||t<T0, cur=k===i&&t>=T0&&t<T1;
+    d.d.setAttribute("fill",on?C.accent:C.bg);
+    d.d.setAttribute("r",cur?16+3*Math.sin(TAU*u):12);
+    d.v.setAttribute("opacity",on?1:.45); d.u.setAttribute("opacity",on?1:.45); });
+};
+});
+</script>

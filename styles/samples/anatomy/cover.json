@@ -1,0 +1,18 @@
+{
+  "style": "anatomy",
+  "brand": "rishabh0111.github.io",
+  "kicker": "SYSTEM DESIGN · 10 / 10",
+  "title": "Generating an ID",
+  "titleAccent": "nobody else could generate",
+  "valueLabel": "one 64-bit snowflake id",
+  "parts": [
+    { "bits": 1,  "color": "grey",   "value": 0 },
+    { "bits": 41, "color": "yellow", "value": 1893456000123, "kind": "time",
+      "label": "timestamp", "sub": "ms since epoch, so IDs sort by time" },
+    { "bits": 10, "color": "pink",   "value": 437,
+      "label": "machine", "sub": "which node minted it" },
+    { "bits": 12, "color": "cyan",   "value": 0, "kind": "counter", "perTick": 9,
+      "label": "sequence", "sub": "per-ms counter, resets each tick" }
+  ],
+  "footnote": "Unique without asking anyone."
+}

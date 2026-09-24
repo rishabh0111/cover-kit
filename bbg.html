@@ -1,0 +1,421 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>bbg cover</title>
+<style>
+  @font-face{font-family:"Atkinson Hyperlegible";font-weight:400;
+    src:url("fonts/AtkinsonHyperlegible-Regular.ttf") format("truetype");}
+  @font-face{font-family:"Atkinson Hyperlegible";font-weight:700;
+    src:url("fonts/AtkinsonHyperlegible-Bold.ttf") format("truetype");}
+  html,body{margin:0;padding:0;}
+  body{overflow:hidden;font-family:"Atkinson Hyperlegible",Helvetica,Arial,sans-serif;}
+  svg{display:block;}
+  text{user-select:none;}
+</style>
+<body>
+<script src="icons-color.js"></script>
+<svg id="s"></svg>
+<script>
+/* ByteByteGo-style cover: flat ground, bento cards with edge pills, filled
+   multi-tone icons, numbered dashed edges with chevrons, chips, captions.
+   Motion: every dash marches; a data packet walks each card's flow in turn;
+   nodes flash and micro-animate when it lands.  See STYLE.md.               */
+const NS="http://www.w3.org/2000/svg";
+const svg=document.getElementById("s");
+const el=(t,a)=>{const e=document.createElementNS(NS,t);
+  for(const k in a)e.setAttribute(k,a[k]);return e;};
+const text=(x,y,s,o)=>{const t=el("text",{x,y,...o});t.textContent=s;return t;};
+
+const S=window.SPEC, I=window.CICONS;
+const W=S.width||1200, H=S.height||1200, M=44;
+const LIGHT=S.theme!=="dark";
+const TH=LIGHT?{
+  bg:"#FFFFFF", card:"#FFFFFF", cardStroke:"#1F2937", ink:"#111827",
+  text:"#1F2937", muted:"#64748B", conn:"#1F2937", bar:"#0891B2", accent:"#B45309",
+  outline:"#1F2937", shadow:.10,
+  pill:{green:"#16A34A",violet:"#7C3AED",amber:"#D97706",red:"#DC2626",
+        cyan:"#0891B2",indigo:"#4F46E5",pink:"#DB2777",teal:"#0D9488",blue:"#2563EB",grey:"#475569"},
+}:{
+  bg:"#0A0A0A", card:"#161616", cardStroke:"#3A3A3A", ink:"#FFFFFF",
+  text:"#F3F4F6", muted:"#9CA3AF", conn:"#E5E7EB", bar:"#22C55E", accent:"#F59E0B",
+  outline:"#0A0A0A", shadow:0,
+  pill:{green:"#16A34A",violet:"#7C3AED",amber:"#D97706",red:"#DC2626",
+        cyan:"#0891B2",indigo:"#4F46E5",pink:"#DB2777",teal:"#0D9488",blue:"#2563EB",grey:"#475569"},
+};
+/* icon palettes: main fill, light highlight, dark outline, accent sparkle */
+const PAL={
+  cyan:  {main:"#22B8CF",light:"#C7F1F8"}, green: {main:"#22C55E",light:"#C6F6D5"},
+  violet:{main:"#8B5CF6",light:"#E4D9FF"}, amber: {main:"#F59E0B",light:"#FDE9B8"},
+  red:   {main:"#EF4444",light:"#FECACA"}, indigo:{main:"#6366F1",light:"#DDDDFF"},
+  pink:  {main:"#EC4899",light:"#FBCFE8"}, teal:  {main:"#14B8A6",light:"#C3F4EC"},
+  blue:  {main:"#3B82F6",light:"#CFE2FF"}, grey:  {main:"#94A3B8",light:"#E2E8F0"},
+};
+for(const k in PAL){PAL[k].dark=TH.outline;PAL[k].accent="#FBBF24";}
+const pal=t=>PAL[t]||PAL.cyan;
+
+const TS=S.titleSize||50, LBL=S.labelSize||22, SUB=S.subSize||16,
+      EDG=S.edgeSize||18, CAP=S.capSize||20, CHP=S.chipSize||16,
+      PIL=S.pillSize||15, ICO=S.iconSize||88, R=ICO/2;
+document.body.style.background=TH.bg;
+document.body.style.width=W+"px"; document.body.style.height=H+"px";
+svg.setAttribute("width",W); svg.setAttribute("height",H);
+svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+
+const defs=el("defs",{});
+let dh=`
+  <filter id="lift" x="-10%" y="-20%" width="120%" height="140%">
+    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#0F172A" flood-opacity="${TH.shadow}"/>
+  </filter>
+  <linearGradient id="sheen" x1="0" x2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+    <stop offset=".5" stop-color="#fff" stop-opacity=".22"/>
+    <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  </linearGradient>`;
+const mk=(id,col)=>`<marker id="hd-${id}" viewBox="0 0 10 10" refX="8" refY="5"
+    markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M1 1L8 5L1 9" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker>`;
+for(const k in TH.pill) dh+=mk(k,TH.pill[k]);
+dh+=mk("ink",TH.conn);
+defs.innerHTML=dh;
+svg.appendChild(defs);
+svg.appendChild(el("rect",{x:0,y:0,width:W,height:H,fill:TH.bg}));
+
+/* ---------- title band ---------- */
+svg.appendChild(el("rect",{x:M,y:28,width:8,height:TS*0.92,rx:4,fill:TH.bar}));
+const brand=text(W-M,28+TS*0.66,S.brand||"",{"text-anchor":"end",fill:TH.ink,
+  "font-size":20,"font-weight":700}); svg.appendChild(brand);
+if(S.brand) svg.appendChild(el("rect",{x:W-M-brand.getComputedTextLength()-22,y:28+TS*0.66-16,width:8,height:20,rx:2,fill:TH.bar}));
+const t1=text(M+26,28+TS*0.74,S.title,{fill:TH.ink,"font-weight":700,"letter-spacing":-1});
+svg.appendChild(t1);
+const t2=S.titleAccent?text(0,28+TS*0.74,S.titleAccent,{fill:TH.accent,"font-weight":700,"letter-spacing":-1}):null;
+if(t2) svg.appendChild(t2);
+let ts=TS, room=W-2*M-26-brand.getComputedTextLength()-60;
+for(;;){ t1.setAttribute("font-size",ts); if(t2)t2.setAttribute("font-size",ts);
+  const w=t1.getComputedTextLength()+(t2?t2.getComputedTextLength()+14:0);
+  if(w<=room||ts<=24)break; ts-=1; }
+if(t2) t2.setAttribute("x",M+26+t1.getComputedTextLength()+14);
+const TB=28+TS*0.92+30;
+
+/* ---------- cards ---------- */
+const CARDS=[], NODES={}, EDGES=[], PILLS=[], LINKS=[];
+const gap=S.cardGap||46, gx=S.cardGapX||36;
+let cy=TB+18, cx0=M, rowH=0;
+S.cards.forEach((c,ci)=>{
+  const span=c.span||1, fullW=W-2*M;
+  const w=Math.round(fullW*span-(span<1?gx*(1-span):0));
+  if(cx0+w>M+fullW+1){ cx0=M; cy+=rowH+gap; rowH=0; }
+  const x=cx0, y=cy, h=c.h||360;
+  cx0+=w+gx; rowH=Math.max(rowH,h);
+  if(cx0>=M+fullW-1){ cx0=M; cy+=rowH+gap; rowH=0; }
+  const col=c.color||"cyan", pc=TH.pill[col];
+  svg.appendChild(el("rect",{x,y,width:w,height:h,rx:22,fill:TH.card,stroke:TH.cardStroke,
+    "stroke-width":LIGHT?2:1.5,filter:"url(#lift)"}));
+  /* pill on the top edge */
+  const pg=el("g",{}); svg.appendChild(pg);
+  const pr=el("rect",{x:0,y:y-19,width:10,height:38,rx:19,fill:pc}); pg.appendChild(pr);
+  const pn=text(0,y+6,c.n,{fill:"#fff","font-size":PIL+1,"font-weight":700,opacity:.8});
+  const pl=text(0,y+6,c.label,{fill:"#fff","font-size":PIL,"font-weight":700,"letter-spacing":1.4});
+  pg.appendChild(pn); pg.appendChild(pl);
+  const clip=el("clipPath",{id:"pc"+ci}); const cr=el("rect",{x:0,y:y-19,width:10,height:38,rx:19}); clip.appendChild(cr); defs.appendChild(clip);
+  const sh=el("rect",{x:0,y:y-19,width:70,height:38,fill:"url(#sheen)",opacity:0,"clip-path":`url(#pc${ci})`}); pg.appendChild(sh);
+  PILLS.push({pr,pn,pl,sh,cr,x,w,y});
+
+  /* inner area */
+  const ix=x+34, iw=w-68;
+  const capH=c.caption?CAP+22:12, chipH=c.chips&&c.chips.length?CHP+40:0;
+  const iy=y+36, ih=h-36-capH-chipH-10;
+  const card={id:c.id||String(ci),x,y,w,h,ix,iy,iw,ih,col,nodes:[],edges:[],flow:c.flow||[],idx:ci};
+  CARDS.push(card);
+
+  /* caption + chips */
+  if(c.caption) svg.appendChild(text(x+w/2,y+h-18,c.caption,{"text-anchor":"middle",
+    fill:TH.muted,"font-size":CAP,"font-weight":400}));
+  if(chipH){
+    const chy=y+h-capH-chipH+12, items=[];
+    let tot=0;
+    c.chips.forEach(ch=>{const t=text(0,0,ch.text,{"font-size":CHP,"font-weight":700});
+      svg.appendChild(t); const tw=t.getComputedTextLength()+30; items.push({t,tw,ch}); tot+=tw;});
+    const gp=16; let cx=x+w/2-(tot+gp*(items.length-1))/2;
+    items.forEach(({t,tw,ch})=>{
+      const tone=ch.tone||col, p=pal(tone), pc2=TH.pill[tone]||pc;
+      svg.insertBefore(el("rect",{x:cx,y:chy,width:tw,height:CHP+16,rx:(CHP+16)/2,
+        fill:LIGHT?p.light:"#1f2937",stroke:pc2,"stroke-width":1.6}),t);
+      t.setAttribute("x",cx+15); t.setAttribute("y",chy+CHP+3);
+      t.setAttribute("fill",LIGHT?pc2:p.main);
+      cx+=tw+gp;
+    });
+  }
+
+  /* notes: free-placed chips */
+  (c.notes||[]).forEach(nt=>{
+    const tone=nt.tone||col, p=pal(tone), pc2=TH.pill[tone];
+    const t=text(0,0,nt.text,{"font-size":CHP,"font-weight":700,fill:LIGHT?pc2:p.main}); svg.appendChild(t);
+    const tw=t.getComputedTextLength()+30, nx=ix+iw*nt.x-tw/2, ny=iy+ih*nt.y;
+    svg.insertBefore(el("rect",{x:nx,y:ny-CHP-8,width:tw,height:CHP+16,rx:(CHP+16)/2,fill:LIGHT?p.light:"#1f2937",stroke:pc2,"stroke-width":1.6,"stroke-dasharray":nt.dashed?"5 4":"none"}),t);
+    t.setAttribute("x",nx+15); t.setAttribute("y",ny+3);
+  });
+  /* nodes */
+  const ICOc=c.iconSize||ICO, Rc=ICOc/2;
+  (c.nodes||[]).forEach(nd=>{
+    const nx=ix+iw*nd.x, ny=iy+ih*nd.y, tone=nd.tone||col, p=pal(tone), R=Rc;
+    const halo=el("circle",{cx:nx,cy:ny,r:R+8,fill:p.main,opacity:0}); svg.appendChild(halo);
+    const ring=el("circle",{cx:nx,cy:ny,r:R+8,fill:"none",stroke:p.main,"stroke-width":3,opacity:0}); svg.appendChild(ring);
+    if(nd.value!=null) ring.setAttribute("opacity","0");
+    const g=el("g",{}); svg.appendChild(g);
+    let rw=R, rh=R;
+    const ig=el("g",{transform:`translate(${nx-R} ${ny-R}) scale(${ICOc/48})`});
+    if(nd.value!=null){
+      const vs=nd.valueSize||LBL+12;
+      const vt=text(nx,ny+vs*0.36,nd.value,{"text-anchor":"middle",fill:TH.pill[tone],"font-size":vs,"font-weight":700,"data-own":nd.id}); svg.appendChild(vt);
+      rw=Math.max(R,vt.getComputedTextLength()/2+22); rh=R*0.72;
+      const vr=el("rect",{x:nx-rw,y:ny-rh,width:rw*2,height:rh*2,rx:14,fill:p.light,"fill-opacity":LIGHT?.55:1,stroke:TH.outline,"stroke-width":2.2});
+      g.appendChild(vr); g.appendChild(vt);
+    } else { ig.innerHTML=(I[nd.icon]||I.server)(p); g.appendChild(ig); }
+    let stars=null;
+    if(nd.hero){ stars=[]; [[-R*1.05,-R*.6,9],[R*1.0,-R*.85,12],[R*.95,R*.75,8]].forEach(([dx,dy,r],k)=>{
+        const sg=el("g",{transform:`translate(${nx+dx} ${ny+dy})`}); sg.innerHTML=SPARK(r,"#FBBF24"); svg.appendChild(sg);
+        stars.push({g:sg,x:nx+dx,y:ny+dy,phase:k/3}); }); }
+    if(nd.badge){ const bc=nd.badge==="x"?TH.pill.red:TH.pill.green, bx=nx+rw-4, by=ny-rh+6;
+      const bg=el("g",{transform:`translate(${bx} ${by})`});
+      bg.innerHTML=`<circle r="14" fill="${bc}" stroke="${TH.card}" stroke-width="3"/>`+
+        (nd.badge==="x"?`<path d="M-5 -5L5 5M5 -5L-5 5" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>`
+                       :`<path d="M-6 0l4 4 8-8" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`);
+      g.appendChild(bg); }
+    const lab=text(nx,ny+rh+LBL+6,nd.label||"",{"text-anchor":"middle",fill:TH.text,"font-size":LBL,"font-weight":700});
+    svg.appendChild(lab);
+    let tw2=lab.getComputedTextLength()/2;
+    if(nd.sub){ const st=text(nx,ny+rh+LBL+SUB+12,nd.sub,{"text-anchor":"middle",fill:TH.muted,"font-size":SUB,"font-weight":400});
+      svg.appendChild(st); tw2=Math.max(tw2,st.getComputedTextLength()/2); }
+    const n={id:nd.id,x:nx,y:ny,tone,p,g,ig,halo,ring,stars,hits:[],type:nd.icon,rw,rh,lw:Math.max(rw,tw2),
+      bottom:ny+rh+(nd.label?LBL+10:6)+(nd.sub?SUB+6:0),top:ny-rh-6,
+      led:[...ig.querySelectorAll(".a-led")],row:ig.querySelector(".a-row"),shk:ig.querySelector(".a-shk"),
+      wob:ig.querySelector(".a-wob"),hand:ig.querySelector(".a-hand"),broom:ig.querySelector(".a-broom"),
+      bars:[...ig.querySelectorAll(".a-bar")],bob:ig.querySelector(".a-bob"),
+      spin:ig.querySelector(".a-spin"),scan:ig.querySelector(".a-scan"),blink:[...ig.querySelectorAll(".a-blink")],
+      pulse:ig.querySelector(".a-pulse"),flash:ig.querySelector(".a-flash"),slide:ig.querySelector(".a-slide")};
+    NODES[nd.id]=n; card.nodes.push(n);
+  });
+
+  /* groups: dashed outline around a set of nodes, label chip on the border */
+  (c.groups||[]).forEach(gr=>{
+    const ns=gr.nodes.map(id=>NODES[id]); const pad=gr.pad||22;
+    const x0=Math.min(...ns.map(n=>n.x-n.lw))-pad, x1=Math.max(...ns.map(n=>n.x+n.lw))+pad;
+    const y0=Math.min(...ns.map(n=>n.top))-pad+2, y1=Math.max(...ns.map(n=>n.bottom))+pad-12;
+    const tone=gr.tone||col, pc2=TH.pill[tone];
+    const rect=el("rect",{x:x0,y:y0,width:x1-x0,height:y1-y0,rx:18,fill:LIGHT?pal(tone).light:"#111",
+      "fill-opacity":LIGHT?.35:1,stroke:pc2,"stroke-width":2,"stroke-dasharray":"7 6"});
+    svg.insertBefore(rect,ns[0].halo);
+    const cyb=gr.chip==="bottom"?y1:gr.chip==="midleft"?(y0+y1)/2:gr.chip==="midright"?(y0+y1)/2:y0;
+    const t=text(0,cyb+6,gr.label,{"font-size":SUB+1,"font-weight":700,fill:"#fff"}); svg.appendChild(t);
+    const tw=t.getComputedTextLength()+24, tx=gr.chip==="left"?x0+16:gr.chip==="bottom"?(x0+x1)/2-tw/2:gr.chip==="midleft"?x0-tw/2:gr.chip==="midright"?x1-tw/2:x1-tw-16;
+    svg.insertBefore(el("rect",{x:tx,y:cyb-13,width:tw,height:26,rx:13,fill:pc2}),t);
+    t.setAttribute("x",tx+12);
+    if(gr.lane!==false) ns.forEach(n=>{ n.top=y0-2; n.bottom=y1+2; });
+  });
+
+  /* edges */
+  const liveBoxes=()=>{ const out=[];
+    document.querySelectorAll("text").forEach(t=>{ const b=t.getBBox(); if(b.width>0) out.push(b); });
+    for(const id in NODES){ const n=NODES[id]; out.push({x:n.x-n.rw,y:n.y-n.rh,width:2*n.rw,height:2*n.rh}); }
+    VRUNS.forEach(v=>out.push(v)); return out; };
+  const VRUNS=[];
+  const hitArea=(p,q)=>{ const w=Math.min(p.x+p.width,q.x+q.width)-Math.max(p.x,q.x), h=Math.min(p.y+p.height,q.y+q.height)-Math.max(p.y,q.y);
+    return (w>0&&h>0)?w*h:0; };
+  (c.edges||[]).forEach((e,ei)=>{
+    const a=NODES[e.from], b=NODES[e.to], tone=e.fail?"red":(e.tone||col);
+    const stroke=e.ink===false?TH.pill[tone]:TH.conn;
+    let d, route=e.route||"auto", cands=[];
+    const dy=b.y-a.y, dx=b.x-a.x, off=e.offset||0;
+    if(route==="auto") route=Math.abs(dy)<4?"h":Math.abs(dx)<4?"v":"hvh";
+    if(route==="h"){
+      const x1=a.x+(dx>0?a.rw+8:-a.rw-8), x2=b.x+(dx>0?-b.rw-12:b.rw+12), y=a.y+off, mx=(x1+x2)/2;
+      d=`M${x1} ${y} H${x2}`;
+      cands=[{lx:mx,ly:y-12,an:"middle",k:"above"},{lx:mx,ly:y+EDG+14,an:"middle",k:"below"}];
+    }else if(route==="v"){
+      const down=dy>0, y1=down?a.bottom:a.top, y2=down?b.top-6:b.bottom+6, x=a.x+off, my=(y1+y2)/2;
+      d=`M${x} ${y1} V${y2}`; VRUNS.push({x:x-4,y:Math.min(y1,y2),width:8,height:Math.abs(y2-y1)});
+      cands=[{lx:x+14,ly:my+6,an:"start",k:"right"},{lx:x-14,ly:my+6,an:"end",k:"left"}];
+    }else if(route==="hvh"){
+      const x1=a.x+(dx>0?a.rw+8:-a.rw-8), x2=b.x+(dx>0?-b.rw-12:b.rw+12), xm=e.xm!=null?ix+iw*e.xm:(x1+x2)/2;
+      d=`M${x1} ${a.y} H${xm} V${b.y} H${x2}`; VRUNS.push({x:xm-4,y:Math.min(a.y,b.y),width:8,height:Math.abs(dy)});
+      const fx=(xm+x2)/2, y62=a.y+dy*0.62+6, y38=a.y+dy*0.38+6;
+      cands=[{lx:fx,ly:b.y-14,an:"middle",k:"above"},{lx:fx,ly:b.y+EDG+14,an:"middle",k:"below"},
+             {lx:xm+14,ly:y62,an:"start",k:"right"},{lx:xm-14,ly:y62,an:"end",k:"left"},
+             {lx:xm+14,ly:y38,an:"start",k:"right"},{lx:xm-14,ly:y38,an:"end",k:"left"},
+             {lx:(x1+xm)/2,ly:a.y-14,an:"middle",k:"above"}];
+    }else if(route==="hv"){
+      const px=b.x+(e.px||0), down=dy>0, x1=a.x+(dx>0?a.rw+8:-a.rw-8), y2=down?b.y-b.rh-8:b.bottom+6;
+      d=`M${x1} ${a.y} H${px} V${y2}`; VRUNS.push({x:px-4,y:Math.min(a.y,y2),width:8,height:Math.abs(y2-a.y)});
+      const mx=(x1+px)/2;
+      cands=[{lx:mx,ly:a.y-14,an:"middle",k:"above"},{lx:mx,ly:a.y+EDG+14,an:"middle",k:"below"},
+             {lx:px+14,ly:(a.y+y2)/2+6,an:"start",k:"right"},{lx:px-14,ly:(a.y+y2)/2+6,an:"end",k:"left"}];
+    }else if(route==="vhv"){
+      const same=Math.abs(dy)<30, down=dy>0;
+      const y1=same?a.bottom:(down?a.bottom:a.top), y2=same?b.bottom+6:(down?b.top-6:b.bottom+6);
+      const ym=same?Math.max(y1,y2)+(e.drop||26):(y1+y2)/2;
+      d=`M${a.x} ${y1} V${ym} H${b.x} V${y2}`;
+      cands=[{lx:(a.x+b.x)/2,ly:ym-10,an:"middle",k:"above"},{lx:(a.x+b.x)/2,ly:ym+EDG+12,an:"middle",k:"below"}];
+    }
+    if(e.side){ const pref=cands.filter(q=>q.k===e.side), rest=cands.filter(q=>q.k!==e.side); cands=pref.concat(rest); }
+    const p=el("path",{d,fill:"none",stroke,"stroke-width":2.6,"stroke-linecap":"round","stroke-linejoin":"round",
+      "stroke-dasharray":"9 7","marker-end":`url(#hd-${e.fail?"red":(e.ink===false?tone:"ink")})`});
+    svg.appendChild(p);
+    /* label with an optional numbered badge: try each candidate spot, keep the first clear one */
+    if(e.label||e.n){
+      const lc=e.fail?TH.pill.red:TH.pill[tone];
+      const ES=e.size||EDG;
+      const t=text(0,-999,e.label||"",{fill:lc,"font-size":ES,"font-weight":700}); svg.appendChild(t);
+      const tw=t.getComputedTextLength(), br=EDG*0.66, total=tw+(e.n?2*br+8:0);
+      const boxes=liveBoxes();
+      let best=null, bestA=Infinity;
+      if(e.lx!=null||e.ly!=null){ const q=cands[0]; best={lx:e.lx!=null?ix+iw*e.lx:q.lx,ly:e.ly!=null?iy+ih*e.ly:q.ly,an:e.anchor||q.an}; }
+      else for(const q of cands){
+        const x0=q.an==="middle"?q.lx-total/2:q.an==="start"?q.lx:q.lx-total;
+        if(x0<x+10||x0+total>x+w-10) continue;
+        const span={x:x0,y:q.ly-EDG,width:total,height:EDG+4};
+        let area=0; for(const bb of boxes) area+=hitArea(span,bb);
+        if(area<bestA){bestA=area;best=q;} if(area===0)break;
+      }
+      if(!best) best=cands[0];
+      let lx=best.lx+(e.ldx||0), ly=best.ly+(e.ldy||0), anchor=best.an;
+      t.setAttribute("text-anchor",anchor); t.setAttribute("x",lx); t.setAttribute("y",ly);
+      let bx=null;
+      if(e.n){
+        if(anchor==="middle"){ t.setAttribute("x",lx+br+4); bx=lx-tw/2-4; }
+        else if(anchor==="start"){ t.setAttribute("x",lx+2*br+8); bx=lx+br; }
+        else { bx=lx-tw-br-8; }
+        svg.appendChild(el("circle",{cx:bx,cy:ly-EDG*0.36,r:br,fill:lc}));
+        svg.appendChild(text(bx,ly,e.n,{"text-anchor":"middle",fill:"#fff","font-size":EDG*0.8,"font-weight":700}));
+      }
+    }
+    /* packet trail + head, hidden until the flow reaches this edge */
+    const trail=el("path",{d,fill:"none",stroke:pal(tone).main,"stroke-width":10,"stroke-linecap":"round",
+      "stroke-linejoin":"round",opacity:0}); svg.appendChild(trail);
+    const head=el("g",{opacity:0}); head.innerHTML=`<circle r="11" fill="${pal(tone).main}" stroke="${TH.outline}" stroke-width="2.4"/><circle r="4.5" fill="#fff"/>`; svg.appendChild(head);
+    const E={path:p,trail,head,len:p.getTotalLength(),to:b,from:a,card,fail:!!e.fail,idx:ei};
+    trail.setAttribute("stroke-dasharray",`36 ${E.len+100}`);
+    EDGES.push(E); card.edges.push(E);
+  });
+});
+
+/* inter-card links: elbow from under a node in card A into card B's pill */
+(S.links||[]).forEach(l=>{
+  if(l.route==="side"){
+    /* loop-back: out of node `from`, up (or down) the right margin, into node `to`.
+       Node ids must be unique across cards. Label reads along the vertical run. */
+    const a=NODES[l.from], b=NODES[l.to], xr=W-26, tone=l.fail?"red":(l.tone||"grey");
+    const d=`M${a.x+a.rw+8} ${a.y} H${xr} V${b.y} H${b.x+b.rw+12}`;
+    const p=el("path",{d,fill:"none",stroke:TH.conn,"stroke-width":2.6,"stroke-linecap":"round","stroke-linejoin":"round",
+      "stroke-dasharray":"9 7","marker-end":`url(#hd-${l.fail?"red":"ink"})`}); svg.appendChild(p);
+    if(l.label) svg.appendChild(text(0,0,l.label,{class:"rot","text-anchor":"middle",fill:TH.pill[tone],"font-size":EDG,
+      "font-weight":700,transform:`translate(${xr+18} ${(a.y+b.y)/2}) rotate(-90)`}));
+    LINKS.push(p); return;
+  }
+  const a=CARDS.find(c=>c.id===l.from), b=CARDS.find(c=>c.id===l.to);
+  const x1=a.x+a.w*(l.x==null?.14:l.x), x2=b.x+b.w/2;
+  const y1=a.y+a.h+2, y2=b.y-24, ym=(y1+y2)/2;
+  const d=l.toPill?`M${x1} ${y1} V${ym} H${x2} V${y2}`:`M${x1} ${y1} V${y2}`;
+  const p=el("path",{d,fill:"none",stroke:TH.conn,"stroke-width":2.6,"stroke-linecap":"round","stroke-linejoin":"round",
+    "stroke-dasharray":"9 7","marker-end":"url(#hd-ink)"}); svg.appendChild(p);
+  if(l.label){ const lx=l.toPill?(x1+x2)/2:x1+16, ly=l.toPill?ym-10:ym+6;
+    svg.appendChild(text(lx,ly,l.label,{"text-anchor":l.toPill?"middle":"start",fill:TH.pill[l.tone||"grey"],"font-size":EDG,"font-weight":700})); }
+  LINKS.push(p);
+});
+
+/* size the pills to their text, centre on the card */
+PILLS.forEach(P=>{
+  const nw=P.pn.getComputedTextLength(), lw=P.pl.getComputedTextLength();
+  const pw=nw+lw+52, px=P.x+(P.w-pw)/2;
+  P.pr.setAttribute("x",px); P.pr.setAttribute("width",pw);
+  P.cr.setAttribute("x",px); P.cr.setAttribute("width",pw);
+  P.pn.setAttribute("x",px+20); P.pl.setAttribute("x",px+30+nw);
+  P.px=px; P.pw=pw;
+});
+
+/* ---------- schedule: which packet is where, when ---------- */
+const NC=CARDS.length, DASH=16;
+/* each card gets an equal window; inside it, flow edges get equal segments:
+   travel for 74% of the segment, then hold on the node for 26% */
+{ const weights=CARDS.map(c=>Math.max(1,(c.flow.length?c.flow:c.edges).length));
+  const tot=weights.reduce((a,b)=>a+b,0)/(S.loopFill||0.9); let acc=0;
+  CARDS.forEach((c,i)=>{ c.w0=acc/tot; acc+=weights[i]; c.w1=acc/tot; }); }
+CARDS.forEach(c=>{
+  const fl=c.flow.length?c.flow.map(i=>c.edges[i]):c.edges;
+  c.fl=fl; const seg=(c.w1-c.w0)/Math.max(1,fl.length);
+  fl.forEach((E,k)=>{ E.t0=c.w0+seg*k; E.t1=E.t0+seg*0.74; E.tEnd=E.t0+seg;
+    E.to.hits.push({at:E.t1,fail:E.fail}); });
+});
+const wrapd=(t,at)=>{let d=t-at; if(d<0)d+=1; return d;};
+const hitOf=(n,t)=>{let h=0,age=1,fail=false; n.hits.forEach(hh=>{const d=wrapd(t,hh.at);
+  const e=Math.exp(-d/0.045); if(e>h){h=e;age=d;fail=hh.fail;}}); return {h,age,fail};};
+const TAU=Math.PI*2;
+
+window.setFrame=function(f,total){
+  const t=f/total;
+  /* 1. every dash marches toward its head: 8 dash periods per loop */
+  const doff=(-t*DASH*8).toFixed(3);
+  EDGES.forEach(E=>E.path.setAttribute("stroke-dashoffset",doff));
+  LINKS.forEach(p=>p.setAttribute("stroke-dashoffset",doff));
+  /* 2. the packet */
+  EDGES.forEach(E=>{
+    if(E.t0==null){E.trail.setAttribute("opacity",0);E.head.setAttribute("opacity",0);return;}
+    let u=(t-E.t0)/(E.t1-E.t0);
+    if(u<0||u>1.15){E.trail.setAttribute("opacity",0);E.head.setAttribute("opacity",0);return;}
+    const uu=Math.min(1,u), pos=uu*E.len;
+    const fade=u<.08?u/.08:u>1?Math.max(0,1-(u-1)/.15):1;
+    const pt=E.path.getPointAtLength(pos);
+    E.head.setAttribute("transform",`translate(${pt.x.toFixed(1)} ${pt.y.toFixed(1)})`);
+    E.head.setAttribute("opacity",fade.toFixed(3));
+    E.trail.setAttribute("stroke-dashoffset",(36-pos).toFixed(2));
+    E.trail.setAttribute("opacity",(0.45*fade).toFixed(3));
+  });
+  /* 3. nodes: flash on hit, idle micro-animation always */
+  for(const id in NODES){
+    const n=NODES[id], {h,age,fail}=hitOf(n,t);
+    n.ring.setAttribute("r",(n.rw+4+18*(1-h)).toFixed(1));
+    n.ring.setAttribute("opacity",(n.rw===n.rh?0.6*h*h:0).toFixed(3));
+    n.ring.setAttribute("stroke",fail?TH.pill.red:n.p.main);
+    const sc=1+0.10*h;
+    n.g.setAttribute("transform",`translate(${n.x} ${n.y}) scale(${sc.toFixed(3)}) translate(${-n.x} ${-n.y})`);
+    if(n.bob) n.bob.setAttribute("transform",`translate(0 ${(-1.6*Math.sin(TAU*(t*2))).toFixed(2)})`);
+    n.led.forEach((L,k)=>L.setAttribute("opacity",(h>.4||Math.sin(TAU*(t*3+k/3))>0)?1:.28));
+    if(n.row){ const p=Math.min(1,age/0.05), y=8+p*20;
+      n.row.setAttribute("transform",`translate(0 ${y.toFixed(1)})`);
+      n.row.setAttribute("opacity",(age<0.05?1:Math.max(0,1-(age-0.05)/0.05)).toFixed(3)); }
+    if(n.shk){ const k=age<0.06?Math.sin(Math.PI*age/0.06):0; n.shk.setAttribute("transform",`translate(0 ${(-4*k).toFixed(2)})`); }
+    if(n.wob){ const idle=(n.type==="bell"?7:4)*Math.sin(TAU*t*3), kick=14*h*Math.sin(TAU*age*12);
+      n.wob.setAttribute("transform",`rotate(${(idle+kick).toFixed(2)} 24 24)`); }
+    if(n.hand) n.hand.setAttribute("transform",`rotate(${(360*t).toFixed(1)} 24 24)`);
+    if(n.spin) n.spin.setAttribute("transform",`rotate(${(360*t*(n.spinDir||1)).toFixed(1)} 24 24)`);
+    if(n.scan){ const k=Math.sin(TAU*t*2); n.scan.setAttribute("transform",`translate(${(4*k).toFixed(2)} ${(3*Math.cos(TAU*t*2)).toFixed(2)})`); }
+    if(n.blink) n.blink.forEach(B=>B.setAttribute("transform",(t%0.5)<0.04?"translate(0 0) scale(1 .15)":"scale(1 1)"));
+    if(n.pulse){ const k=1+0.06*Math.sin(TAU*t*2)+0.12*h; n.pulse.setAttribute("transform",`translate(24 24) scale(${k.toFixed(3)}) translate(-24 -24)`); }
+    if(n.flash) n.flash.setAttribute("opacity",(0.55+0.45*Math.max(0,Math.sin(TAU*t*3))).toFixed(2));
+    if(n.slide) n.slide.setAttribute("transform",`translate(${(3*Math.sin(TAU*t*2)).toFixed(2)} 0)`);
+    if(n.broom) n.broom.setAttribute("transform",`rotate(${(9*Math.sin(TAU*t*2)).toFixed(2)} 24 6)`);
+    n.bars.forEach((B,k)=>{ B.setAttribute("transform",`translate(0 ${(-1.8*Math.sin(TAU*(t*2+k*0.22))).toFixed(2)})`);
+      const lit=age>k*0.018&&age<k*0.018+0.07; B.setAttribute("fill",lit?(fail?TH.pill.red:n.p.accent):n.p.main); });
+    if(n.stars) n.stars.forEach(s=>{ const tw=Math.max(0,Math.sin(TAU*(t*2+s.phase)));
+      const k=(0.35+0.65*tw)*(1+0.8*h); s.g.setAttribute("transform",`translate(${s.x} ${s.y}) scale(${k.toFixed(3)}) rotate(${(30*Math.sin(TAU*t)).toFixed(1)})`); });
+  }
+  /* 4. pill sheen sweeps while its card is live */
+  PILLS.forEach((P,i)=>{ const c=CARDS[i]; const live=t>=c.w0&&t<c.w1;
+    const u=(t-c.w0)/(c.w1-c.w0);
+    P.sh.setAttribute("x",(P.px-70+(P.pw+140)*Math.max(0,Math.min(1,u*1.6))).toFixed(1));
+    P.sh.setAttribute("opacity",live?1:0); });
+};
+window.setFrame(0,1);
+{ const boxes=[];
+  document.querySelectorAll("text:not(.rot)").forEach(t=>{ const b=t.getBBox(); if(b.width>0) boxes.push({b,s:t.textContent,kind:"text",own:t.getAttribute("data-own")}); });
+  for(const id in NODES){ const n=NODES[id]; boxes.push({b:{x:n.x-n.rw,y:n.y-n.rh,width:2*n.rw,height:2*n.rh},s:"["+id+"]",kind:"icon",id}); }
+  const hit=(p,q)=>p.x<q.x+q.width-5&&q.x<p.x+p.width-5&&p.y<q.y+q.height-5&&q.y<p.y+p.height-5;
+  const out=[];
+  for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){
+    if(boxes[i].kind==="icon"&&boxes[j].kind==="icon")continue;
+    if(boxes[i].own&&boxes[i].own===boxes[j].id||boxes[j].own&&boxes[j].own===boxes[i].id)continue;
+    if(hit(boxes[i].b,boxes[j].b)) out.push(boxes[i].s+"  <->  "+boxes[j].s);
+  }
+  window.__overlaps=out; }
+Promise.all([document.fonts.load('700 100px "Atkinson Hyperlegible"'),
+  document.fonts.load('400 100px "Atkinson Hyperlegible"')]).then(()=>document.fonts.ready)
+  .then(()=>{window.__ready=true;});
+</script>

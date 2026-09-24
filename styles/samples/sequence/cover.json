@@ -1,0 +1,25 @@
+{
+  "style": "sequence",
+  "brand": "rishabh0111.github.io",
+  "title": "Files do not go",
+  "titleAccent": "through your backend",
+  "actors": [
+    { "id": "c",  "label": "client",  "sub": "browser" },
+    { "id": "api","label": "API",     "sub": "your server" },
+    { "id": "s3", "label": "storage", "sub": "S3 bucket" },
+    { "id": "db", "label": "database","sub": "metadata only" }
+  ],
+  "meters": [
+    { "actor": "c",   "label": "sent by client",  "max": 200, "unit": "MB", "during": 3 },
+    { "actor": "api", "label": "through the API", "max": 0,   "unit": "B",  "during": 3, "color": "ok" }
+  ],
+  "messages": [
+    { "from": "c",   "to": "api", "label": "upload video.mp4?" },
+    { "from": "api", "to": "api", "label": "sign URL", "note": "local, no bytes" },
+    { "from": "api", "to": "c",   "label": "presigned URL", "reply": true },
+    { "from": "c",   "to": "s3",  "label": "PUT 200 MB", "heavy": true },
+    { "from": "c",   "to": "api", "label": "done: key" },
+    { "from": "api", "to": "db",  "label": "INSERT url, size" }
+  ],
+  "footnote": "The server was never adding value to the transfer."
+}

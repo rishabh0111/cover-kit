@@ -1,0 +1,18 @@
+{
+  "_data": "Illustrative curve shape; the committed sweep in the repo should replace these points before shipping.",
+  "style": "chart",
+  "brand": "rishabh0111.github.io",
+  "kicker": "RAG · CALIBRATION",
+  "title": "What a RAG gate",
+  "titleAccent": "should decide",
+  "chart": {
+    "xLabel": "false escalations  (costs an agent 2 min)",
+    "yLabel": "false deflections  (costs a customer)",
+    "xMax": 25, "xTicks": 5, "xUnit": "%",
+    "yMax": 12, "yTicks": 4, "yUnit": "%",
+    "series": [[0.5, 11.2], [1.5, 7.9], [2.8, 4.6], [4.2, 2.1], [5.5, 0.8], [6.8, 0], [10, 0], [15, 0], [20, 0], [24, 0]],
+    "mark": { "x": 6.8, "y": 0, "label": "6.8% at zero", "sub": "the point the repo commits to", "dx": 150, "dy": -250, "size": 64 },
+    "zone": { "y": 0, "label": "a wrong answer about their money" }
+  },
+  "footnote": "Swept, committed, re-derived in CI."
+}

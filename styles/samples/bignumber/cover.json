@@ -1,0 +1,15 @@
+{
+  "style": "bignumber",
+  "brand": "rishabh0111.github.io",
+  "kicker": "SYSTEM DESIGN · 01 / 10",
+  "title": "“It needs to scale”",
+  "titleAccent": "is not a requirement.",
+  "steps": [
+    { "value": "10M", "unit": "users",           "chip": "10M",   "chipUnit": "users" },
+    { "value": "2M",  "unit": "daily active",    "chip": "2M",    "chipUnit": "daily", "op": "× 20%" },
+    { "value": "10M", "unit": "requests a day",  "chip": "10M",   "chipUnit": "req / day", "op": "× 5" },
+    { "value": "116", "unit": "average QPS",     "chip": "116",   "chipUnit": "avg QPS", "op": "÷ 86,400" },
+    { "value": "350", "unit": "peak QPS",        "chip": "350",   "chipUnit": "peak QPS", "op": "× 3" }
+  ],
+  "footnote": "Now it's a design input."
+}

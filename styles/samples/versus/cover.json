@@ -1,0 +1,15 @@
+{
+  "style": "versus",
+  "brand": "rishabh0111.github.io",
+  "title": "Not which is faster.",
+  "titleAccent": "Who reads the bytes?",
+  "left":  { "name": "REST", "tag": "public API" },
+  "right": { "name": "gRPC", "tag": "service to service" },
+  "rows": [
+    { "key": "who calls it",  "left": "developers you've never met", "right": "code you own on both ends" },
+    { "key": "on the wire",   "left": "JSON a human can read",       "right": "binary, schema-first" },
+    { "key": "debug with",    "left": "curl",                        "right": "generated clients" },
+    { "key": "wins",          "left": "caching, reach",              "right": "throughput, streams" }
+  ],
+  "footnote": "Answer the question you actually have."
+}

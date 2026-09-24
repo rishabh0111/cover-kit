@@ -1,0 +1,101 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>chart cover</title>
+<body>
+<script src="base.js"></script>
+<script>
+/* CHART — editorial, one plot, one red highlight (FT / Economist register).
+   `chart.series` is the measured curve; `chart.mark` is the point the post
+   is about. A cursor sweeps the curve with live readouts and settles on the
+   mark. Frame 0 = cursor on the mark.                                      */
+const {el,text,fit,phase,ease,clamp,TAU}=CS, S=window.SPEC;
+CS.run(()=>{
+const W=S.width||1200, H=S.height||1200, M=60;
+const C={bg:S.ground||"#F4EFE6",ink:"#161412",muted:"#6F6A62",grid:"#DAD3C6",hot:S.accent||"#D7301F",cool:"#1F4E79",zone:"#D7301F"};
+const {svg,defs}=CS.setup(W,H,C.bg);
+const G=S.chart;
+
+/* top rule + kicker, the newspaper tell */
+svg.appendChild(el("rect",{x:M,y:44,width:90,height:10,fill:C.hot}));
+if(S.kicker) svg.appendChild(text(M+108,55,S.kicker,{fill:C.ink,"font-family":"Space Grotesk","font-size":22,"font-weight":700,"letter-spacing":2.5}));
+let y=70; const TS=S.titleSize||84;
+[S.title,S.titleAccent].filter(Boolean).forEach((ln,i)=>{ y+=TS*0.98;
+  const t=text(M-2,y,ln,{fill:i?C.hot:C.ink,"font-family":"Instrument Serif","font-style":"italic","font-size":TS,"data-g":"title"});
+  svg.appendChild(t); fit(t,W-2*M,TS,40); });
+if(S.dek){ y+=46; svg.appendChild(text(M,y,S.dek,{fill:C.muted,"font-family":"Space Grotesk","font-size":26,"font-weight":500})); }
+
+/* plot box */
+const px0=M+92, px1=W-M-20, py0=y+(S.plotGap||90), py1=H-190;
+const X=v=>px0+(px1-px0)*v/G.xMax, Y=v=>py1-(py1-py0)*v/G.yMax;
+const ticks=(max,n)=>Array.from({length:n+1},(_,i)=>max*i/n);
+ticks(G.yMax,G.yTicks||4).forEach(v=>{ svg.appendChild(el("line",{x1:px0,x2:px1,y1:Y(v),y2:Y(v),stroke:v?C.grid:C.ink,"stroke-width":v?1.5:2.5}));
+  svg.appendChild(text(px0-16,Y(v)+8,v+(G.yUnit||""),{"text-anchor":"end",fill:C.muted,"font-family":"Space Grotesk","font-size":22})); });
+ticks(G.xMax,G.xTicks||5).forEach(v=>svg.appendChild(text(X(v),py1+36,v+(G.xUnit||""),{"text-anchor":"middle",fill:C.muted,"font-family":"Space Grotesk","font-size":22})));
+svg.appendChild(text(px1,py1+76,G.xLabel,{"text-anchor":"end",fill:C.ink,"font-family":"Space Grotesk","font-size":26,"font-weight":700}));
+svg.appendChild(text(0,0,G.yLabel,{"text-anchor":"end",fill:C.ink,"font-family":"Space Grotesk","font-size":26,"font-weight":700,
+  transform:`translate(${px0-66} ${py0}) rotate(-90)`,class:"free"}));
+
+/* forbidden zone: everything above the line the mark sits on */
+if(G.zone){ const zy=Y(G.zone.y);
+  svg.appendChild(el("rect",{x:px0,y:py0,width:px1-px0,height:zy-py0,fill:C.zone,opacity:.06}));
+  svg.appendChild(el("line",{x1:px0,x2:px1,y1:zy,y2:zy,stroke:C.zone,"stroke-width":2,"stroke-dasharray":"6 6",opacity:.6}));
+  svg.appendChild(text(px1-12,py0+36,G.zone.label,{"text-anchor":"end",fill:C.zone,"font-family":"Space Grotesk","font-size":24,"font-weight":700})); }
+
+/* the curve: catmull-rom through the swept points, points drawn as ticks */
+const P=G.series.map(([a,b])=>[X(a),Y(b)]);
+let d=`M${P[0][0]} ${P[0][1]}`;
+for(let i=0;i<P.length-1;i++){ const p0=P[i-1]||P[i], p1=P[i], p2=P[i+1], p3=P[i+2]||p2;
+  const lo=Math.min(p1[1],p2[1]), hi=Math.max(p1[1],p2[1]), cl=v=>Math.max(lo,Math.min(hi,v)); /* no overshoot past the data */
+  d+=` C${p1[0]+(p2[0]-p0[0])/6} ${cl(p1[1]+(p2[1]-p0[1])/6)} ${p2[0]-(p3[0]-p1[0])/6} ${cl(p2[1]-(p3[1]-p1[1])/6)} ${p2[0]} ${p2[1]}`; }
+const curve=el("path",{d,fill:"none",stroke:C.ink,"stroke-width":5,"stroke-linejoin":"round","stroke-linecap":"round"}); svg.appendChild(curve);
+P.forEach(([a,b])=>svg.appendChild(el("circle",{cx:a,cy:b,r:6,fill:C.bg,stroke:C.ink,"stroke-width":3})));
+const L=curve.getTotalLength();
+/* arc length of the mark: nearest sampled point */
+const mx=X(G.mark.x), my=Y(G.mark.y); let lm=0, best=1e9;
+for(let s=0;s<=L;s+=L/600){ const q=curve.getPointAtLength(s), dd=(q.x-mx)**2+(q.y-my)**2; if(dd<best){best=dd;lm=s;} }
+
+/* cursor: guides to both axes, readouts */
+const gx=el("line",{stroke:C.cool,"stroke-width":2,"stroke-dasharray":"4 5"}), gy=el("line",{stroke:C.cool,"stroke-width":2,"stroke-dasharray":"4 5"});
+svg.appendChild(gx); svg.appendChild(gy);
+const halo=el("circle",{r:26,fill:C.hot,opacity:.18}); svg.appendChild(halo);
+const dot=el("circle",{r:13,fill:C.hot,stroke:C.bg,"stroke-width":4}); svg.appendChild(dot);
+const rdX=text(0,0,"",{"text-anchor":"middle",fill:C.bg,"font-family":"JetBrains Mono","font-size":22,"font-weight":700,class:"free"});
+const rdXb=el("rect",{rx:6,fill:C.cool}); svg.appendChild(rdXb); svg.appendChild(rdX);
+const rdY=text(0,0,"",{"text-anchor":"end",fill:C.bg,"font-family":"JetBrains Mono","font-size":22,"font-weight":700,class:"free"});
+const rdYb=el("rect",{rx:6,fill:C.cool}); svg.appendChild(rdYb); svg.appendChild(rdY);
+
+/* the mark's callout: leader line up-right into a label */
+const cg=el("g",{}); svg.appendChild(cg);
+const lx=mx+(G.mark.dx||120), ly=my+(G.mark.dy||-190);
+cg.appendChild(el("path",{d:`M${mx+14} ${my-14}L${lx-10} ${ly+14}`,stroke:C.hot,"stroke-width":3}));
+const cl1=text(lx,ly,G.mark.label,{fill:C.hot,"font-family":"Space Grotesk","font-size":G.mark.size||44,"font-weight":700,"data-g":"call"}); cg.appendChild(cl1);
+if(G.mark.sub) cg.appendChild(text(lx,ly+46,G.mark.sub,{fill:C.ink,"font-family":"Space Grotesk","font-size":30,"font-weight":500,"data-g":"call"}));
+
+if(S.footnote) svg.appendChild(text(M,H-44,S.footnote,{fill:C.muted,"font-family":"Instrument Serif","font-style":"italic","font-size":32}));
+CS.brand(svg,S,{fill:C.ink,bar:C.hot},W,H-44);
+
+const inv=(px,lo,hi,v0,v1)=>v0+(v1-v0)*(px-lo)/(hi-lo);
+const fmt=(v,u)=>(Math.abs(v)<10?v.toFixed(1):v.toFixed(0))+(u||"");
+/* sweep: mark → start, start → end (slow, passing the mark), end → mark, hold */
+const pos=t=>{ if(t<.2) return lm*(1-ease.inOut(t/.2));
+  if(t<.66) return L*ease.inOut((t-.2)/.46);
+  if(t<.84) return L+(lm-L)*ease.inOut((t-.66)/.18); return lm; };
+window.setFrame=(f,total)=>{
+  const t=f/total, s=pos(t), q=curve.getPointAtLength(s);
+  dot.setAttribute("cx",q.x); dot.setAttribute("cy",q.y);
+  const settled=t>=.84||t<.001, pulse=settled?Math.sin(TAU*(t-.84)/.16*2):0;
+  halo.setAttribute("cx",q.x); halo.setAttribute("cy",q.y); halo.setAttribute("r",(26+10*Math.abs(pulse)).toFixed(1));
+  gx.setAttribute("x1",q.x); gx.setAttribute("x2",q.x); gx.setAttribute("y1",q.y+14); gx.setAttribute("y2",py1);
+  gy.setAttribute("x1",px0); gy.setAttribute("x2",q.x-14); gy.setAttribute("y1",q.y); gy.setAttribute("y2",q.y);
+  const vx=inv(q.x,px0,px1,0,G.xMax), vy=Math.max(0,inv(q.y,py1,py0,0,G.yMax));
+  rdX.textContent=fmt(vx,G.xUnit); rdX.setAttribute("x",q.x); rdX.setAttribute("y",py1-14);
+  const bx=rdX.getBBox(); rdXb.setAttribute("x",bx.x-8); rdXb.setAttribute("y",bx.y-4); rdXb.setAttribute("width",bx.width+16); rdXb.setAttribute("height",bx.height+8);
+  rdY.textContent=fmt(vy,G.yUnit); rdY.setAttribute("x",px0+rdY.getComputedTextLength()+18); rdY.setAttribute("y",q.y-12);
+  const by=rdY.getBBox(); rdYb.setAttribute("x",by.x-8); rdYb.setAttribute("y",by.y-4); rdYb.setAttribute("width",by.width+16); rdYb.setAttribute("height",by.height+8);
+  const onMark=Math.abs(s-lm)<L*0.02;
+  [rdX,rdXb,rdY,rdYb].forEach(e=>e.setAttribute("opacity",onMark?0:1));
+  gy.setAttribute("opacity",onMark?0:1);
+  cg.setAttribute("opacity",(settled?1:Math.max(0,1-Math.abs(s-lm)/(L*.06))).toFixed(2));
+};
+});
+</script>

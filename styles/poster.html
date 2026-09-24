@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>poster cover</title>
+<body>
+<script src="base.js"></script>
+<script>
+/* POSTER — a claim set in type, nothing else. `lines[]` stack full-width in
+   Anton; a line can be `strike` (red bar redraws each loop), `invert` (ink
+   block, slams in after the strike) or `accent`. One oversized shape turns
+   slowly behind it all. ≤ 8 words across all lines, or it stops being a poster. */
+const {el,text,fit,phase,ease,clamp,TAU}=CS, S=window.SPEC;
+CS.run(()=>{
+const W=S.width||1200, H=S.height||1200, M=60;
+const C={bg:S.ground||"#FFD400",ink:S.ink||"#0E0E0E",hot:S.accent||"#E5231B",paper:S.paper||"#FFF7D1"};
+const {svg,defs}=CS.setup(W,H,C.bg);
+
+/* the shape: a big asterisk, mostly off-canvas bottom-right */
+const shp=el("g",{opacity:.08}); svg.appendChild(shp);   /* group opacity: overlaps do not darken */
+const SR=S.shapeR||380, sx=S.shapeX||W-110, sy=S.shapeY||H-330;
+if((S.shape||"asterisk")==="asterisk")
+  for(let i=0;i<6;i++) shp.appendChild(el("rect",{x:-SR,y:-44,width:2*SR,height:88,rx:10,fill:C.ink,transform:`rotate(${i*30})`}));
+else shp.appendChild(el("circle",{r:SR,fill:"none",stroke:C.ink,"stroke-width":60}));
+
+/* kicker row: small mono label + a rule */
+if(S.kicker){ const k=text(M,M+34,S.kicker,{fill:C.ink,"font-family":"JetBrains Mono","font-size":24,"font-weight":800,"letter-spacing":3});
+  svg.appendChild(k); svg.appendChild(el("rect",{x:M+k.getComputedTextLength()+20,y:M+24,width:W-2*M-k.getComputedTextLength()-20,height:6,fill:C.ink})); }
+
+/* lines: fit each to the full width, cap at maxSize */
+const top=M+(S.top||120), LS=S.lineSize||210, gap=S.lineGap||0.2;
+let y=top; const L=[];
+S.lines.forEach((ln,i)=>{
+  const g=el("g",{}); svg.appendChild(g);
+  const t=text(M,0,ln.text.toUpperCase(),{fill:ln.style==="accent"?C.hot:C.ink,"font-family":"Anton","letter-spacing":-2,"data-g":"stack"});
+  g.appendChild(t);
+  const fs=fit(t,(W-2*M)*(ln.width||1),ln.size||LS,60);
+  const cap=fs*0.86;                                   /* Anton cap height ≈ .86em incl. overshoot */
+  y+=cap; t.setAttribute("y",y);
+  const tw=t.getComputedTextLength(), I={g,t,fs,y,tw,ln};
+  if(ln.style==="invert"){ const pad=fs*0.08;
+    const bg=el("rect",{x:M-pad,y:y-cap-pad,width:tw+2*pad,height:cap+2*pad,fill:C.ink}); g.insertBefore(bg,t);
+    t.setAttribute("fill",C.bg); I.bg=bg; I.cx=M+tw/2; I.cy=y-cap/2; }
+  if(ln.style==="strike"){ const sb=el("rect",{x:M-12,y:y-cap*0.56,width:tw+24,height:fs*0.11,fill:C.hot}); g.appendChild(sb); I.sb=sb; t.setAttribute("opacity",.9); }
+  y+=fs*gap+(ln.style==="invert"?fs*0.1:0);
+  L.push(I); });
+
+/* sub: plain sans under the stack */
+if(S.sub){ const st=text(M,y+90,S.sub,{fill:C.ink,"font-family":"Space Grotesk","font-size":S.subSize||50,"font-weight":700,"letter-spacing":-.5,"data-g":"stack"}); svg.appendChild(st); fit(st,W-2*M,S.subSize||50,26); }
+if(S.footnote) svg.appendChild(text(M,H-44,S.footnote,{fill:C.ink,"font-family":"Instrument Serif","font-style":"italic","font-size":34}));
+CS.brand(svg,S,{fill:C.ink,bar:C.hot},W,H-44);
+
+window.setFrame=(f,total)=>{
+  const t=f/total;
+  shp.setAttribute("transform",`translate(${sx} ${sy}) rotate(${(60*t).toFixed(2)})`);  /* 60° = one symmetry period: seamless */
+  L.forEach(I=>{
+    if(I.sb){ /* retract right→left over .01–.07, redraw left→right over .08–.2 with a hard ease */
+      const out=ease.inOut(phase(t,.01,.07)), back=ease.out(phase(t,.08,.2)), w=I.tw+24;
+      const k=t<.08?1-out:back; I.sb.setAttribute("width",(w*k).toFixed(1)); }
+    if(I.bg){ /* stamp: invisible while the strike is out, slams in at .2 with a scale overshoot */
+      const u=phase(t,.2,.3), s=t<.08?1:t<.2?0:1+0.12*Math.sin(Math.PI*u)*(1-u);
+      const hide=t>=.08&&t<.2;
+      I.g.setAttribute("opacity",hide?0:1);
+      I.g.setAttribute("transform",`translate(${I.cx} ${I.cy}) scale(${s.toFixed(3)}) rotate(${(t>=.2&&t<.3?-2*(1-u):0).toFixed(2)}) translate(${-I.cx} ${-I.cy})`); }
+  });
+};
+});
+</script>

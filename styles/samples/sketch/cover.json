@@ -1,0 +1,27 @@
+{
+  "style": "sketch",
+  "brand": "rishabh0111.github.io",
+  "title": "What CAP actually",
+  "titleAccent": "makes you choose",
+  "draw": [
+    {"type": "poly", "points": [[300, 480], [100, 880], [500, 880]], "close": true, "color": "black"},
+    {"type": "circle", "cx": 300, "cy": 465, "r": 50, "color": "blue", "fill": "blue", "label": "C", "size": 70},
+    {"type": "circle", "cx": 100, "cy": 890, "r": 50, "color": "blue", "fill": "blue", "label": "A", "size": 70},
+    {"type": "circle", "cx": 500, "cy": 890, "r": 50, "color": "blue", "fill": "blue", "label": "P", "size": 70},
+    {"type": "text", "x": 366, "y": 452, "text": "consistent", "size": 46, "color": "black"},
+    {"type": "text", "x": 100, "y": 990, "text": "available", "size": 46, "color": "black", "anchor": "middle"},
+    {"type": "text", "x": 470, "y": 990, "text": "partition-tolerant", "size": 46, "color": "black", "anchor": "middle"},
+    {"type": "text", "x": 300, "y": 760, "text": "pick two", "size": 58, "color": "black", "anchor": "middle"},
+    {"type": "arrow", "from": [600, 720], "to": [700, 720], "color": "black", "head": 24},
+    {"type": "text", "x": 720, "y": 560, "text": "when the network splits:", "size": 50, "color": "black"},
+    {"type": "box", "x": 720, "y": 600, "w": 420, "h": 125, "color": "green", "fill": "green", "label": "answer, maybe stale", "size": 50},
+    {"type": "box", "x": 720, "y": 790, "w": 420, "h": 125, "color": "amber", "fill": "amber", "label": "refuse to answer", "size": 50},
+    {"type": "text", "x": 930, "y": 772, "text": "or", "size": 42, "color": "grey", "anchor": "middle"},
+    {"type": "strike", "from": [200, 746], "to": [402, 734], "color": "red", "anno": true},
+    {"type": "circle", "cx": 500, "cy": 890, "rx": 84, "ry": 76, "color": "red", "anno": true},
+    {"type": "arrow", "from": [655, 1040], "to": [585, 950], "bend": 0.25, "color": "red", "anno": true},
+    {"type": "text", "x": 670, "y": 1060, "text": "not optional. cables get cut.", "size": 50, "color": "red", "anno": true},
+    {"type": "text", "x": 700, "y": 985, "text": "…per subsystem, not per system", "size": 42, "color": "blue", "anno": true}
+  ],
+  "footnote": "the triangle is the wrong picture"
+}

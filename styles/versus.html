@@ -1,0 +1,94 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>versus cover</title>
+<body>
+<script src="base.js"></script>
+<script>
+/* VERSUS — two options, a slanted split, one row per question that tells them
+   apart. The row keys sit on the divider. Motion: the VS badge punches in at
+   loop start, then each row lights left and right in turn. Use when neither
+   side is wrong; for broken → fixed use `left.bad: true` to mark a side.    */
+const {el,text,fit,wrap,phase,ease,clamp,TAU}=CS, S=window.SPEC;
+CS.run(()=>{
+const W=S.width||1200, H=S.height||1200, M=48;
+const L=Object.assign({ground:"#FFE8D6",ink:"#1B1B1B",accent:"#E4572E",soft:"#7A5A48"},S.left);
+const R=Object.assign({ground:"#0F172A",ink:"#F8FAFC",accent:"#2DD4BF",soft:"#94A3B8"},S.right);
+const TOP=S.bandH||200;
+const light=hex=>{ const n=parseInt(hex.replace("#",""),16); return (0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))>150; };
+const {svg,defs}=CS.setup(W,H,S.band||"#FAFAF7");
+
+/* title band */
+const TS=S.titleSize||60;
+const t1=text(M,82,S.title,{fill:"#111","font-family":"Space Grotesk","font-weight":700,"letter-spacing":-1.5,"data-g":"title"});
+const t2=text(M,82+TS*1.05,S.titleAccent||"",{fill:"#111","font-family":"Space Grotesk","font-weight":700,"letter-spacing":-1.5,"data-g":"title"});
+svg.appendChild(t1); svg.appendChild(t2); fit(t1,W-2*M,TS,36); fit(t2,W-2*M,TS,36);
+/* underline the accent line in both sides' colours, the whole idea in one mark */
+const ul=t2.getComputedTextLength();
+svg.appendChild(el("rect",{x:M,y:82+TS*1.05+12,width:ul/2,height:8,fill:L.accent}));
+svg.appendChild(el("rect",{x:M+ul/2,y:82+TS*1.05+12,width:ul/2,height:8,fill:R.accent}));
+
+/* split: divider slants from (cx+sl, TOP) to (cx-sl, H) */
+const cx=W/2, sl=S.slant==null?46:S.slant, divX=y=>cx+sl-(2*sl)*(y-TOP)/(H-TOP);
+svg.appendChild(el("path",{d:`M0 ${TOP}H${divX(TOP)}L${divX(H)} ${H}H0Z`,fill:L.ground}));
+svg.appendChild(el("path",{d:`M${divX(TOP)} ${TOP}H${W}V${H}H${divX(H)}Z`,fill:R.ground}));
+const divLine=el("path",{d:`M${divX(TOP)} ${TOP}L${divX(H)} ${H}`,stroke:"#111","stroke-width":6}); svg.appendChild(divLine);
+
+/* the two names */
+const NY=TOP+170, NS=S.nameSize||150;
+const side=(P,x0,x1,anchor)=>{
+  const x=anchor==="start"?x0:x1;
+  const n=text(x,NY,P.name,{"text-anchor":anchor,fill:P.ink,"font-family":"Anton","font-size":NS,"data-g":"name"+anchor}); svg.appendChild(n); fit(n,x1-x0,NS,70);
+  if(P.bad){ const b=n.getBBox(); svg.appendChild(el("line",{x1:b.x-6,x2:b.x+b.width+6,y1:b.y+b.height*.55,y2:b.y+b.height*.45,stroke:P.accent,"stroke-width":12,"stroke-linecap":"round"})); }
+  const tg=text(x,NY+48,P.tag||"",{"text-anchor":anchor,fill:P.accent,"font-family":"Space Grotesk","font-size":30,"font-weight":700,"data-g":"name"+anchor}); svg.appendChild(tg); fit(tg,x1-x0,30,18);
+  return n; };
+const nL=side(L,M,divX(NY)-60,"start"), nR=side(R,divX(NY)+60,W-M,"end");
+
+/* rows */
+const rows=S.rows||[], ry0=NY+130, ry1=H-(S.footnote?120:90), rh=(ry1-ry0)/rows.length, VS=S.valueSize||34;
+const RW=rows.map((r,k)=>{
+  const y=ry0+rh*k+rh/2, dx=divX(y);
+  const key=text(dx,y-rh/2+30,r.key.toUpperCase(),{"text-anchor":"middle",fill:"#111","font-family":"JetBrains Mono","font-size":18,"font-weight":800,"letter-spacing":1.5});
+  const kbg=el("rect",{rx:15,fill:"#FFF",stroke:"#111","stroke-width":3}); svg.appendChild(kbg); svg.appendChild(key);
+  const kb=key.getBBox(); kbg.setAttribute("x",kb.x-14); kbg.setAttribute("y",kb.y-6); kbg.setAttribute("width",kb.width+28); kbg.setAttribute("height",kb.height+12);
+  const mk=(P,val,x,anchor,maxW)=>{
+    const lines=wrap(svg,val,maxW,{"font-family":"Space Grotesk","font-size":VS,"font-weight":700}).slice(0,2);
+    const g=el("g",{}); svg.appendChild(g);
+    const tg=el("g",{});
+    lines.forEach((ln,i)=>tg.appendChild(text(x,y+14+(i-(lines.length-1)/2)*VS*1.12+10,ln,{"text-anchor":anchor,fill:P.ink,"font-family":"Space Grotesk","font-size":VS,"font-weight":700,"data-g":"v"+k+anchor})));
+    /* a tint alone vanishes on a light ground (coral on peach), so the tint is
+       stronger there and a solid bar on the outer edge carries the highlight */
+    const hl=el("rect",{rx:10,fill:P.accent,opacity:0}), bar=el("rect",{rx:3,fill:P.accent,opacity:0});
+    g.appendChild(hl); g.appendChild(bar); g.appendChild(tg);
+    return {g,tg,hl,bar,x,anchor,tint:light(P.ground)?.5:.28}; };
+  const a=mk(L,r.left,M,"start",dx-M-90), b=mk(R,r.right,W-M,"end",W-M-dx-90);
+  if(k) { svg.insertBefore(el("line",{x1:M,x2:dx-30,y1:y-rh/2,y2:y-rh/2,stroke:L.ink,"stroke-width":1.5,opacity:.18}),kbg);
+          svg.insertBefore(el("line",{x1:dx+30,x2:W-M,y1:y-rh/2,y2:y-rh/2,stroke:R.ink,"stroke-width":1.5,opacity:.25}),kbg); }
+  [a,b].forEach(s=>{ const bb=s.tg.getBBox(); s.bb=bb; s.hl.setAttribute("x",bb.x-12); s.hl.setAttribute("y",bb.y-6); s.hl.setAttribute("width",bb.width+24); s.hl.setAttribute("height",bb.height+12);
+    s.bar.setAttribute("x",s.anchor==="start"?bb.x-24:bb.x+bb.width+18); s.bar.setAttribute("y",bb.y-6); s.bar.setAttribute("width",6); s.bar.setAttribute("height",bb.height+12); });
+  return {a,b,y}; });
+
+/* VS badge on the divider between names and rows */
+const vy=NY-40, vx=divX(vy);
+const vs=el("g",{}); svg.appendChild(vs);
+vs.innerHTML=`<circle r="58" fill="#111"/><circle r="58" fill="none" stroke="#FFF" stroke-width="5"/>`;
+const vt=text(0,20,"VS",{"text-anchor":"middle",fill:"#FFF","font-family":"Anton","font-size":58,class:"free"}); vs.appendChild(vt);
+
+if(S.footnote) svg.appendChild(text(M,H-40,S.footnote,{fill:L.ink,"font-family":"Instrument Serif","font-style":"italic","font-size":32}));
+CS.brand(svg,S,{fill:R.soft,bar:R.accent},W,H-40);
+
+window.setFrame=(f,total)=>{
+  const t=f/total;
+  /* badge punch: 1 → 1.3 → 1 over the first 10%, a small wobble after */
+  const p=phase(t,0,.1), k=1+0.3*Math.sin(Math.PI*p)*(1-p*.3);
+  vs.setAttribute("transform",`translate(${vx} ${vy}) rotate(${(-8+4*Math.sin(TAU*t*2)).toFixed(2)}) scale(${k.toFixed(3)})`);
+  /* rows: each gets a slot in [.1,.9]; left lights in the first half, right in the second */
+  const slot=.8/Math.max(1,RW.length);
+  RW.forEach((r,i)=>{ const a0=.1+i*slot;
+    [[r.a,a0,a0+slot*.55],[r.b,a0+slot*.45,a0+slot]].forEach(([s,b0,b1])=>{
+      const on=CS.win(t,b0,b1,.03);
+      s.hl.setAttribute("opacity",(s.tint*on).toFixed(3)); s.bar.setAttribute("opacity",on.toFixed(3));
+      const dx=(s.anchor==="start"?1:-1)*8*on;
+      s.g.setAttribute("transform",`translate(${dx.toFixed(2)} 0)`); }); });
+};
+});
+</script>

@@ -1,0 +1,90 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>sequence cover</title>
+<body>
+<script src="base.js"></script>
+<script>
+/* SEQUENCE — a UML sequence diagram on blueprint: actors across the top,
+   lifelines down, `messages[]` in order. A packet walks each message in turn;
+   `heavy` messages carry a fat amber payload, `reply` ones are dashed,
+   from === to is a self-call. `meters[]` sit under an actor head and count
+   up while message `during` is in flight — the place a number lives.        */
+const {el,text,fit,phase,ease,clamp,TAU}=CS, S=window.SPEC;
+CS.run(()=>{
+const W=S.width||1200, H=S.height||1200, M=48;
+const C={bg:S.ground||"#0A1A33",grid:"#13294B",line:"#7DD3FC",ink:"#E2E8F0",muted:"#8BA3C7",hot:S.accent||"#FBBF24",ok:"#4ADE80",head:"#10264A"};
+const {svg,defs}=CS.setup(W,H,C.bg);
+const mk=(id,c,s=22)=>`<marker id="${id}" viewBox="0 0 12 12" refX="10" refY="6" markerUnits="userSpaceOnUse" markerWidth="${s}" markerHeight="${s}" orient="auto-start-reverse"><path d="M1 1L10 6L1 11Z" fill="${c}"/></marker>`;
+defs.innerHTML=mk("ah",C.line)+mk("ahh",C.hot,40)+`<pattern id="bp" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="${C.grid}" stroke-width="1.5"/></pattern>`;
+svg.appendChild(el("rect",{x:0,y:0,width:W,height:H,fill:"url(#bp)"}));
+
+/* title */
+const TS=S.titleSize||58;
+const t1=text(M,M+TS*.8,S.title,{fill:C.ink,"font-family":"Space Grotesk","font-weight":700,"font-size":TS,"letter-spacing":-1,"data-g":"title"}); svg.appendChild(t1);
+const t2=text(M,M+TS*1.85,S.titleAccent||"",{fill:C.line,"font-family":"Space Grotesk","font-weight":700,"font-size":TS,"letter-spacing":-1,"data-g":"title"}); svg.appendChild(t2);
+fit(t1,W-2*M,TS,34); fit(t2,W-2*M,TS,34);
+
+/* actors */
+const A=S.actors, n=A.length, ax0=M+120, ax1=W-M-120, AY=S.actorY||M+TS*2+80, AH=76;
+const AX={}; A.forEach((a,i)=>{ const x=n===1?W/2:ax0+(ax1-ax0)*i/(n-1); AX[a.id]=x;
+  const bw=Math.min(230,(ax1-ax0)/(n-1)-24);
+  svg.appendChild(el("rect",{x:x-bw/2,y:AY,width:bw,height:AH,rx:10,fill:C.head,stroke:C.line,"stroke-width":2.5}));
+  const lt=text(x,AY+(a.sub?34:47),a.label,{"text-anchor":"middle",fill:C.ink,"font-family":"JetBrains Mono","font-size":26,"font-weight":800}); svg.appendChild(lt); fit(lt,bw-16,26,16);
+  if(a.sub){ const st=text(x,AY+60,a.sub,{"text-anchor":"middle",fill:C.muted,"font-family":"JetBrains Mono","font-size":17}); svg.appendChild(st); fit(st,bw-16,17,12); }
+});
+const meterH=(S.meters||[]).length?96:0;
+const LY0=AY+AH, LY1=H-(S.footnote?110:80);
+A.forEach(a=>svg.appendChild(el("line",{x1:AX[a.id],x2:AX[a.id],y1:LY0,y2:LY1,stroke:C.line,"stroke-width":2,"stroke-dasharray":"3 9","stroke-linecap":"round",opacity:.7})));
+
+/* meters: box under the actor head */
+const MET=(S.meters||[]).map(m=>{ const x=AX[m.actor], y=LY0+22, g=el("g",{}); svg.appendChild(g);
+  const box=el("rect",{x:x-110,y,width:220,height:64,rx:10,fill:C.bg,stroke:m.color==="ok"?C.ok:C.hot,"stroke-width":2.5}); g.appendChild(box);
+  const v=text(x,y+38,"",{"text-anchor":"middle",fill:m.color==="ok"?C.ok:C.hot,"font-family":"JetBrains Mono","font-size":30,"font-weight":800}); g.appendChild(v);
+  const l=text(x,y+58,m.label,{"text-anchor":"middle",fill:C.muted,"font-family":"JetBrains Mono","font-size":14}); g.appendChild(l);
+  v.setAttribute("y",y+32); return {...m,v,box}; });
+
+/* messages */
+const MS=S.messages, my0=LY0+meterH+60, my1=LY1-30, step=(my1-my0)/Math.max(1,MS.length-1+(MS.some(m=>m.from===m.to)?.4:0));
+let yy=my0;
+const MSG=MS.map((m,i)=>{ const x1=AX[m.from], x2=AX[m.to], self=m.from===m.to, heavy=!!m.heavy, y=yy;
+  yy+=step*(self?1.25:1);
+  let d;
+  if(self){ d=`M${x1} ${y-18}H${x1+90}V${y+26}H${x1+8}`; }
+  else { const dir=x2>x1?1:-1; d=`M${x1+dir*6} ${y}H${x2-dir*8}`; }
+  const p=el("path",{d,fill:"none",stroke:heavy?C.hot:C.line,"stroke-width":heavy?8:3,"stroke-dasharray":m.reply?"10 8":"none","marker-end":`url(#${heavy?"ahh":"ah"})`}); svg.appendChild(p);
+  /* number + label: above the arrow, centred; for self calls, to the right */
+  const lx=self?x1+106:(x1+x2)/2, ly=self?y+10:y-16, an=self?"start":"middle";
+  const lab=text(lx,ly,m.label,{"text-anchor":an,fill:heavy?C.hot:C.ink,"font-family":"JetBrains Mono","font-size":m.size||24,"font-weight":700}); svg.appendChild(lab);
+  if(!self) fit(lab,Math.abs(x2-x1)-60,m.size||24,14);
+  const nb=el("g",{}); nb.innerHTML=`<circle r="15" fill="${heavy?C.hot:C.line}"/>`;
+  const nt=text(0,6,String(i+1),{"text-anchor":"middle",fill:C.bg,"font-family":"JetBrains Mono","font-size":17,"font-weight":800,class:"free"}); nb.appendChild(nt);
+  const lb=lab.getBBox(); nb.setAttribute("transform",`translate(${(an==="middle"?lb.x-24:lx-24).toFixed(1)} ${(ly-8).toFixed(1)})`);
+  if(self) nb.setAttribute("transform",`translate(${x1+106+lb.width+24} ${ly-8})`);
+  svg.appendChild(nb);
+  if(m.note){ const nt2=text(lx,ly+(self?30:50),m.note,{"text-anchor":an,fill:C.muted,"font-family":"JetBrains Mono","font-size":17}); svg.appendChild(nt2); }
+  const pk=el("g",{opacity:0}); pk.innerHTML=heavy?`<rect x="-26" y="-17" width="52" height="34" rx="6" fill="${C.hot}" stroke="${C.bg}" stroke-width="3"/><path d="M-14 -5h28M-14 5h20" stroke="${C.bg}" stroke-width="3"/>`
+    :`<circle r="11" fill="${C.line}" stroke="${C.bg}" stroke-width="3"/>`; svg.appendChild(pk);
+  return {p,pk,lab,len:p.getTotalLength(),heavy}; });
+
+if(S.footnote) svg.appendChild(text(M,H-40,S.footnote,{fill:C.ink,"font-family":"Instrument Serif","font-style":"italic","font-size":34}));
+CS.brand(svg,S,{fill:C.muted,bar:C.hot},W,H-40);
+
+/* schedule: messages share [.03,.86]; heavy ones get 2.5x the time */
+const wts=MSG.map(m=>m.heavy?2.5:1), tw=wts.reduce((a,b)=>a+b,0); let acc=.03;
+MSG.forEach((m,i)=>{ m.t0=acc; acc+=(.83)*wts[i]/tw; m.t1=acc; });
+const fmtV=(v,u)=>(v>=100?v.toFixed(0):v>=10?v.toFixed(0):v.toFixed(v?1:0))+" "+u;
+window.setFrame=(f,total)=>{
+  const t=f/total, idle=t<.03||t>=.86;
+  MSG.forEach(m=>{ const u=(t-m.t0)/(m.t1-m.t0), live=u>=0&&u<1;
+    m.pk.setAttribute("opacity",live?1:0);
+    if(live){ const q=m.p.getPointAtLength(m.len*ease.inOut(u)); m.pk.setAttribute("transform",`translate(${q.x.toFixed(1)} ${q.y.toFixed(1)})`); }
+    m.lab.setAttribute("opacity",idle||live||t>m.t1?1:.35);
+    m.p.setAttribute("opacity",idle||live||t>m.t1?1:.3);
+    m.p.setAttribute("stroke-dashoffset",m.heavy?0:(-t*18*10).toFixed(1)); });
+  MET.forEach(me=>{ const m=MSG[me.during], u=idle?1:clamp((t-m.t0)/(m.t1-m.t0));
+    const v=(me.max||0)*ease.inOut(u);
+    me.v.textContent=fmtV(v,me.unit||"");
+    me.box.setAttribute("stroke-width",(!idle&&u>0&&u<1)?4.5:2.5); });
+};
+});
+</script>

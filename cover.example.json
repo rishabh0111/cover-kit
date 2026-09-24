@@ -1,0 +1,57 @@
+{
+  "_": "Starter flow spec. Copy to covers/<date>-<slug>/cover.json, edit, run ./build-covers.sh covers/<date>-<slug>. Keys starting with _ are ignored.",
+  "template": "bbg.html",
+  "theme": "light",
+  "width": 1200,
+  "height": 1200,
+  "brand": "yoursite.dev",
+  "title": "Plain statement of the topic",
+  "titleAccent": "the part in colour",
+  "cardGap": 72,
+  "_cards": "Two full-width cards is the default. span: 0.5 puts two side by side. Heights should sum to about 1000 with the gap.",
+  "cards": [
+    {
+      "id": "a", "n": "1", "label": "THE BROKEN WAY", "color": "red", "h": 460,
+      "caption": "One line, under the card. Not the punchline.",
+      "_nodes": "x, y are fractions of the card's inner area. icon from icons-color.js, or value for a big number. tone: cyan green violet amber red indigo pink teal blue grey. badge: x | check. hero: true adds sparkles.",
+      "nodes": [
+        { "id": "c",   "icon": "client", "label": "Client",  "tone": "blue",   "x": 0.06, "y": 0.5 },
+        { "id": "api", "icon": "server", "label": "API",     "tone": "cyan",   "x": 0.30, "y": 0.5 },
+        { "id": "db",  "icon": "db",     "label": "Store",   "tone": "indigo", "x": 0.64, "y": 0.18 },
+        { "id": "q",   "icon": "queue",  "label": "Queue",   "tone": "red",    "x": 0.64, "y": 0.78, "badge": "x" },
+        { "id": "out", "icon": "bell",   "label": "Silent",  "sub": "no error, no alarm", "tone": "grey", "x": 0.92, "y": 0.78 }
+      ],
+      "_edges": "route: h (same row) | v (same column) | hvh (elbow, xm = fraction where the vertical run sits) | hv | vhv. n = numbered badge. fail: true = red head and label. side: above | below | left | right is a preference, not a rule.",
+      "edges": [
+        { "from": "c",   "to": "api", "label": "request",  "n": "1", "route": "h",   "offset": -18, "tone": "blue" },
+        { "from": "api", "to": "db",  "label": "write",    "n": "2", "route": "hvh", "xm": 0.40, "tone": "indigo" },
+        { "from": "api", "to": "q",   "label": "enqueue",  "n": "3", "route": "hvh", "xm": 0.40, "fail": true },
+        { "from": "api", "to": "c",   "label": "202",      "n": "4", "route": "h",   "offset": 18, "side": "below", "tone": "green" },
+        { "from": "q",   "to": "out", "label": "nothing fires", "route": "h", "tone": "grey" }
+      ],
+      "_flow": "edge indexes the packet walks, in order. Leave out anti-pattern edges you do not want animated.",
+      "flow": [0, 1, 2, 3, 4],
+      "_groups": "dashed box around nodes, chip on its border: chip left | right | midleft | midright | bottom",
+      "groups": [ { "label": "no transaction", "nodes": ["db", "q"], "tone": "red", "pad": 16, "chip": "midleft", "lane": false } ],
+      "_notes": "free-placed chips for filling a dead corner",
+      "notes": [ { "text": "2 writes, 2 systems", "x": 0.17, "y": 0.93, "tone": "red", "dashed": true } ],
+      "chips": [ { "text": "job: never created", "tone": "red" }, { "text": "nobody finds out", "tone": "grey" } ]
+    },
+    {
+      "id": "b", "n": "2", "label": "THE FIX", "color": "green", "h": 510,
+      "caption": "Keep the payoff in the post.",
+      "nodes": [
+        { "id": "c",   "icon": "client", "label": "Client", "tone": "blue",  "x": 0.06, "y": 0.5 },
+        { "id": "api", "icon": "server", "label": "API",    "tone": "cyan",  "x": 0.30, "y": 0.5 },
+        { "id": "ok",  "icon": "check",  "label": "Done",   "tone": "green", "x": 0.64, "y": 0.5, "hero": true }
+      ],
+      "edges": [
+        { "from": "c",   "to": "api", "label": "request", "n": "1", "route": "h" },
+        { "from": "api", "to": "ok",  "label": "commit",  "n": "2", "route": "h" }
+      ],
+      "chips": [ { "text": "one line is the promise", "tone": "green" } ]
+    }
+  ],
+  "_links": "dashed connector between cards; toPill: true draws an elbow into the next pill",
+  "links": [ { "from": "a", "to": "b", "label": "the fix", "x": 0.5, "tone": "grey" } ]
+}

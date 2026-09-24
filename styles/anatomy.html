@@ -1,0 +1,101 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>anatomy cover</title>
+<body>
+<script src="base.js"></script>
+<script>
+/* ANATOMY — one artefact, taken apart (neo-brutalist: cream ground, thick ink
+   borders, hard offset shadows, flat bright fills). `parts[]` lay out left to
+   right in a strip, width by `bits` (binary cells, live) or `weight` (a text
+   segment: JWT parts, URL pieces, a log line). Each part with a `label` gets a
+   card underneath, joined by an elbow. Bit parts can be `time` (ticks four
+   times a loop) or `counter` (counts up, resets when time ticks).           */
+const {el,text,fit,wrap,phase,ease,clamp,TAU}=CS, S=window.SPEC;
+CS.run(()=>{
+const W=S.width||1200, H=S.height||1200, M=56, SH=8, BW=4;
+const C={bg:S.ground||"#FFF1DA",ink:"#111111",paper:"#FFFFFF",
+  yellow:"#FFC900",pink:"#FF90E8",cyan:"#5CE1E6",lilac:"#B9A6FF",green:"#7CE38B",orange:"#FF8A3D",grey:"#D9D2C3"};
+const col=c=>C[c]||c;
+const {svg,defs}=CS.setup(W,H,C.bg);
+/* a brutalist box: shadow rect, then the box */
+const box=(x,y,w,h,fill,r=10,parent=svg)=>{ parent.appendChild(el("rect",{x:x+SH,y:y+SH,width:w,height:h,rx:r,fill:C.ink}));
+  const b=el("rect",{x,y,width:w,height:h,rx:r,fill,stroke:C.ink,"stroke-width":BW}); parent.appendChild(b); return b; };
+
+/* kicker sticker, slightly rotated */
+let y=M;
+if(S.kicker){ const g=el("g",{transform:`rotate(-2.5 ${M} ${M+20})`}); svg.appendChild(g);
+  const k=text(M+18,M+34,S.kicker,{fill:C.ink,"font-family":"JetBrains Mono","font-size":22,"font-weight":800,"letter-spacing":2});
+  g.appendChild(k); const kw=k.getComputedTextLength()+36; g.insertBefore(el("rect",{x:M,y:M+2,width:kw,height:46,rx:23,fill:col(S.kickerColor||"pink"),stroke:C.ink,"stroke-width":BW}),k);
+  g.insertBefore(el("rect",{x:M+6,y:M+8,width:kw,height:46,rx:23,fill:C.ink}),g.firstChild); y+=70; }
+/* title: second line sits on a highlighter block */
+const TS=S.titleSize||66;
+const t1=text(M,y+TS,S.title,{fill:C.ink,"font-family":"Space Grotesk","font-weight":700,"font-size":TS,"letter-spacing":-1.5,"data-g":"title"}); svg.appendChild(t1); fit(t1,W-2*M,TS,36);
+const t2=text(M+14,y+TS*2.18,S.titleAccent||"",{fill:C.ink,"font-family":"Space Grotesk","font-weight":700,"font-size":TS,"letter-spacing":-1.5,"data-g":"title"}); svg.appendChild(t2); fit(t2,W-2*M-28,TS,36);
+const hb=t2.getBBox(); svg.insertBefore(el("rect",{x:hb.x-14,y:hb.y+hb.height*.18,width:hb.width+28,height:hb.height*.78,fill:col(S.titleColor||"yellow")}),t2);
+y+=TS*2.18+84;
+
+/* value box: what the whole thing looks like assembled */
+const P=S.parts, bitsTotal=P.reduce((a,p)=>a+(p.bits||0),0), isBits=bitsTotal>0;
+let valT=null;
+if(S.showValue!==false){ const vh=110; box(M,y,W-2*M-SH,vh,C.paper,14);
+  valT=text(W/2,y+vh/2+23,"",{"text-anchor":"middle",fill:C.ink,"font-family":"JetBrains Mono","font-size":S.valueSize||64,"font-weight":800}); svg.appendChild(valT);
+  if(S.valueLabel){ const tl=text(M+22,y-12,S.valueLabel,{fill:C.ink,"font-family":"JetBrains Mono","font-size":20,"font-weight":800}); svg.appendChild(tl); }
+  y+=vh+SH; }
+
+/* cards sit on the bottom; the strip is centred in what is left */
+const CH=S.cardH||270, CY=H-(S.footnote?110:84)-CH, sh=S.stripH||104;
+y=y+(CY-60-y-sh)/2;
+/* the strip */
+const sx=M, sw=W-2*M-SH, totalW=isBits?bitsTotal:P.reduce((a,p)=>a+(p.weight||1),0);
+box(sx,y,sw,sh,C.paper,6);
+let x=sx; const PART=[];
+P.forEach((p,i)=>{ const units=p.bits||p.weight||1, w=sw*units/totalW;
+  const seg=el("rect",{x,y,width:w,height:sh,fill:col(p.color||"grey"),stroke:C.ink,"stroke-width":BW}); svg.appendChild(seg);
+  const I={p,x,w,cells:[]};
+  if(p.bits){ const cw=w/p.bits;
+    for(let b=0;b<p.bits;b++){ const cx=x+cw*(b+.5);
+      if(b) svg.appendChild(el("line",{x1:x+cw*b,x2:x+cw*b,y1:y+sh*.25,y2:y+sh*.75,stroke:C.ink,"stroke-width":1,opacity:.25}));
+      const fl=el("rect",{x:x+cw*b+1,y:y+2,width:cw-2,height:sh-4,fill:C.ink,opacity:0}); svg.appendChild(fl);
+      const tt=text(cx,y+sh/2+8,"0",{"text-anchor":"middle",fill:C.ink,"font-family":"JetBrains Mono","font-size":Math.min(26,cw*1.3),"font-weight":700,class:"free"}); svg.appendChild(tt);
+      I.cells.push({tt,fl,v:0}); } }
+  else { const tt=text(x+w/2,y+sh/2+10,p.text||"",{"text-anchor":"middle",fill:C.ink,"font-family":"JetBrains Mono","font-size":28,"font-weight":800}); svg.appendChild(tt); fit(tt,w-20,28,12); }
+  PART.push(I); x+=w; });
+/* bit-count ruler above the strip */
+if(isBits) PART.forEach(I=>{ if(I.w<30)return; svg.appendChild(text(I.x+I.w/2,y-12,I.p.bits+(I.w>120?" bits":""),{"text-anchor":"middle",fill:C.ink,"font-family":"JetBrains Mono","font-size":20,"font-weight":800})); });
+const stripBottom=y+sh; y+=sh+SH;
+
+/* cards under the strip, joined by elbows */
+const L=PART.filter(I=>I.p.label), nC=L.length, gap=28, cw=(W-2*M-SH-gap*(nC-1))/nC;
+const cy=CY, ch=CH;
+L.forEach((I,k)=>{ const cx=M+k*(cw+gap), mid=I.x+I.w/2, top=cy;
+  const ym=stripBottom+(top-stripBottom)/2+ (k-(nC-1)/2)*0;
+  svg.appendChild(el("path",{d:`M${mid} ${stripBottom+SH+4}V${ym}H${cx+cw/2}V${top-4}`,fill:"none",stroke:C.ink,"stroke-width":BW,"stroke-linejoin":"round"}));
+  svg.appendChild(el("circle",{cx:mid,cy:stripBottom+SH+4,r:7,fill:C.ink}));
+  box(cx,top,cw,ch,col(I.p.color||"grey"),14);
+  const big=text(cx+24,top+92,I.p.big||(I.p.bits?String(I.p.bits):""),{fill:C.ink,"font-family":"Anton","font-size":90,"data-g":"card"+k}); svg.appendChild(big);
+  if(I.p.bits&&!I.p.big){ const bt=text(cx+30+big.getComputedTextLength(),top+86,"bits",{fill:C.ink,"font-family":"Space Grotesk","font-size":28,"font-weight":700}); svg.appendChild(bt); }
+  const lt=text(cx+24,top+146,I.p.label,{fill:C.ink,"font-family":"Space Grotesk","font-size":38,"font-weight":700,"data-g":"card"+k}); svg.appendChild(lt); fit(lt,cw-48,38,20);
+  if(I.p.sub) wrap(svg,I.p.sub,cw-48,{"font-family":"Space Grotesk","font-size":27,"font-weight":500}).slice(0,3).forEach((ln,j)=>
+    svg.appendChild(text(cx+24,top+192+j*34,ln,{fill:C.ink,"font-family":"Space Grotesk","font-size":27,"font-weight":500,opacity:.85})));
+});
+if(S.footnote) svg.appendChild(text(M,H-40,S.footnote,{fill:C.ink,"font-family":"Instrument Serif","font-style":"italic","font-size":34}));
+CS.brand(svg,S,{fill:C.ink,bar:col(S.kickerColor||"pink")},W,H-40);
+
+/* live bits: time ticks at quarters, counter climbs in between and resets on each tick */
+const setBits=(I,v,flash)=>{ const n=I.p.bits;
+  I.cells.forEach((c,b)=>{ const bit=Number((BigInt(v)>>BigInt(n-1-b))&1n);
+    c.fl.setAttribute("opacity",flash&&bit!==c.v?.35:0); c.v=bit; c.tt.textContent=bit; }); };
+let prevF=-1;
+window.setFrame=(f,total)=>{
+  const t=f/total; if(!isBits) return;
+  const q=Math.floor(t*4), u=t*4-q, flash=f!==prevF+1?false:true; prevF=f;
+  let id=0n;
+  PART.forEach(I=>{ const p=I.p; let v=BigInt(p.value||0);
+    if(p.kind==="time") v+=BigInt(q);
+    if(p.kind==="counter") v=BigInt(Math.floor(u*(p.perTick||9)));
+    setBits(I,v,flash);
+    id=(id<<BigInt(p.bits))|v; });
+  if(valT) valT.textContent=id.toString();
+};
+});
+</script>

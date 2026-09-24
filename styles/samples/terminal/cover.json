@@ -1,0 +1,27 @@
+{
+  "style": "terminal",
+  "brand": "rishabh0111.github.io",
+  "title": "A job queue with",
+  "titleAccent": "no queue service",
+  "file": "scheduler.sql",
+  "code": [
+    "select id, kind, ticket_id",
+    "  from scheduled_jobs",
+    " where due_at <= now()",
+    "   and claimed_at is null",
+    "   for update skip locked",
+    " limit 4;"
+  ],
+  "focus": 4,
+  "focusNote": "← the whole trick",
+  "rows": {
+    "table": "scheduled_jobs",
+    "cols": "due_at <= now()",
+    "labels": ["#101  sla_clock", "#102  breach_latch", "#103  dwell_sweep", "#104  sla_clock",
+               "#105  sla_clock", "#106  dwell_sweep", "#107  breach_latch", "#108  sla_clock"],
+    "actors": [ { "name": "worker A", "sub": "claims 4", "color": "amber" },
+                { "name": "worker B", "sub": "same query", "color": "green" } ],
+    "claims": [[0, 4], [4, 8]]
+  },
+  "caption": "Two processes, one table, zero coordination."
+}

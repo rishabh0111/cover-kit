@@ -1,0 +1,192 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>terminal cover</title>
+<body>
+<script src="base.js"></script>
+<script>
+/* TERMINAL — a dark editor window holding the one query / config / snippet the
+   post turns on, with the load-bearing line lit. Under it, either
+   `rows` (actors claiming rows of a table: locks, queues, leases) or
+   `output` (what the terminal printed). Mono everywhere except the title.   */
+const {el,text,fit,phase,ease,clamp,TAU,win}=CS, S=window.SPEC;
+CS.run(()=>{
+const W=S.width||1200, H=S.height||1200, M=44;
+const C={bg:"#0B0E14",win:"#131822",chrome:"#1B2130",line:"#232B3B",ink:"#E6EDF3",muted:"#7D8590",
+  kw:"#FF7B72",fn:"#D2A8FF",str:"#A5D6FF",num:"#79C0FF",com:"#6E7681",op:"#FFA657",
+  accent:S.accent||"#3FB950",amber:"#F0B429",green:"#3FB950",red:"#F85149",blue:"#58A6FF"};
+const {svg,defs}=CS.setup(W,H,C.bg);
+defs.innerHTML=`<filter id="glow" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+  <linearGradient id="scan" x1="0" x2="1"><stop offset="0" stop-color="${C.accent}" stop-opacity=".0"/>
+  <stop offset=".5" stop-color="${C.accent}" stop-opacity=".28"/><stop offset="1" stop-color="${C.accent}" stop-opacity="0"/></linearGradient>`;
+
+/* title: sans, big, prompt glyph in accent */
+const TY=96;
+svg.appendChild(text(M,TY,"$",{fill:C.accent,"font-family":"JetBrains Mono","font-size":50,"font-weight":800}));
+const t1=text(M+48,TY,S.title,{fill:C.ink,"font-family":"Space Grotesk","font-weight":700,"letter-spacing":-1,"data-g":"title"});
+const t2=text(0,TY,S.titleAccent||"",{fill:C.accent,"font-family":"Space Grotesk","font-weight":700,"letter-spacing":-1,"data-g":"title"});
+svg.appendChild(t1); svg.appendChild(t2);
+const room=W-2*M-48;
+let ts=S.titleSize||58;
+for(;;){ t1.setAttribute("font-size",ts); t2.setAttribute("font-size",ts);
+  if(t1.getComputedTextLength()+t2.getComputedTextLength()+16<=room||ts<=34)break; ts--; }
+t2.setAttribute("x",M+48+t1.getComputedTextLength()+16);
+CS.brand(svg,S,{fill:C.muted,bar:C.accent,font:"JetBrains Mono"},W,H-34);
+
+/* editor window */
+const code=S.code||[], FS=S.codeSize||36, LH=FS*1.5;
+const wx=M, wy=TY+48, ww=W-2*M, wh=64+code.length*LH+34;
+svg.appendChild(el("rect",{x:wx,y:wy,width:ww,height:wh,rx:18,fill:C.win,stroke:C.line,"stroke-width":2}));
+svg.appendChild(el("path",{d:`M${wx} ${wy+18}a18 18 0 0 1 18 -18H${wx+ww-18}a18 18 0 0 1 18 18V${wy+50}H${wx}Z`,fill:C.chrome}));
+["#FF5F57","#FEBC2E","#28C840"].forEach((c,i)=>svg.appendChild(el("circle",{cx:wx+30+i*26,cy:wy+25,r:8,fill:c})));
+svg.appendChild(text(wx+ww/2,wy+33,S.file||"query.sql",{"text-anchor":"middle",fill:C.muted,"font-family":"JetBrains Mono","font-size":18}));
+
+/* highlight bar behind the focus line, drawn before the code */
+const focus=S.focus!=null?[].concat(S.focus):[];
+const cy0=wy+64+FS;
+const bars=focus.map(i=>{ const y=cy0+i*LH-FS*0.95;
+  const g=el("g",{}); svg.appendChild(g);
+  g.appendChild(el("rect",{x:wx+2,y,width:ww-4,height:LH*0.98,fill:C.accent,opacity:.13}));
+  g.appendChild(el("rect",{x:wx+2,y,width:6,height:LH*0.98,fill:C.accent}));
+  const cp=el("clipPath",{id:"fc"+i}); cp.appendChild(el("rect",{x:wx,y,width:ww,height:LH})); defs.appendChild(cp);
+  const sw=el("rect",{x:wx,y,width:260,height:LH*0.98,fill:"url(#scan)",opacity:0,"clip-path":`url(#fc${i})`}); g.appendChild(sw);
+  return {sw,y}; });
+
+/* tiny highlighter: sql/ts/py keywords, strings, numbers, comments */
+const KW=new Set((S.keywords||"select from where and or not null is for update skip locked limit order by insert into values on conflict do nothing returning begin commit rollback set create table index primary key references join left inner group having as with case when then else end true false const let await async return function if new import export class").split(" "));
+const tokenise=s=>{ const out=[]; const re=/(--.*$|\/\/.*$|#.*$)|('[^']*'|"[^"]*")|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][\w]*)(?=\s*\()|([A-Za-z_][\w]*)|(\s+)|([^\sA-Za-z_\d'"]+)/g; let m;
+  while((m=re.exec(s))){ const [w,com,str,num,fn,id,sp,op]=m;
+    out.push([w,com?C.com:str?C.str:num?C.num:fn?C.fn:id?(KW.has(id.toLowerCase())?C.kw:C.ink):sp?C.ink:C.op]); } return out; };
+const lnW=52;
+code.forEach((ln,i)=>{
+  const y=cy0+i*LH;
+  svg.appendChild(text(wx+lnW-10,y,String(i+1),{"text-anchor":"end",fill:focus.includes(i)?C.accent:C.com,"font-family":"JetBrains Mono","font-size":FS*0.55,class:"free"}));
+  const t=el("text",{x:wx+lnW+18,y,"font-family":"JetBrains Mono","font-size":FS,"font-weight":focus.includes(i)?700:500,"data-g":"code"+i});
+  tokenise(ln).forEach(([w,c])=>{ const sp=el("tspan",{fill:c}); sp.textContent=w; t.appendChild(sp); });
+  svg.appendChild(t);
+  if(focus.includes(i)&&S.focusNote){ /* margin note, right-aligned on the focus line */
+    const n=text(wx+ww-26,y,S.focusNote,{"text-anchor":"end",fill:C.accent,"font-family":"JetBrains Mono","font-size":FS*0.55,"font-weight":700,"data-g":"code"+i});
+    svg.appendChild(n); }
+});
+/* caret after the last line */
+const lastT=svg.querySelector(`[data-g="code${code.length-1}"]`);
+const caret=el("rect",{x:lastT.getBBox().x+lastT.getBBox().width+6,y:cy0+(code.length-1)*LH-FS*0.8,width:FS*0.55,height:FS*0.95,fill:C.accent});
+svg.appendChild(caret);
+
+/* ---------- lower panel ---------- */
+const py=wy+wh+44, ph=H-96-py;
+const ANIM=[];
+if(S.rows){
+  /* actors on the left, table on the right; each actor claims its rows in turn,
+     the ones after the first skip past already-locked rows */
+  const R=S.rows, n=R.labels.length, tx=wx+360, tw=ww-360, hh=46;
+  const rh=Math.min(60,(ph-hh-10)/n), RF=S.rowSize||24;
+  svg.appendChild(el("rect",{x:tx,y:py,width:tw,height:hh+n*rh,rx:12,fill:C.win,stroke:C.line,"stroke-width":2}));
+  svg.appendChild(el("path",{d:`M${tx} ${py+12}a12 12 0 0 1 12 -12H${tx+tw-12}a12 12 0 0 1 12 12V${py+hh}H${tx}Z`,fill:C.chrome}));
+  svg.appendChild(text(tx+20,py+30,R.table||"table",{fill:C.ink,"font-family":"JetBrains Mono","font-size":20,"font-weight":700}));
+  svg.appendChild(text(tx+tw-20,py+30,R.cols||"",{"text-anchor":"end",fill:C.muted,"font-family":"JetBrains Mono","font-size":17}));
+  const rows=R.labels.map((lb,i)=>{ const y=py+hh+i*rh;
+    if(i) svg.appendChild(el("line",{x1:tx+12,x2:tx+tw-12,y1:y,y2:y,stroke:C.line,"stroke-width":1.5}));
+    const fillR=el("rect",{x:tx+3,y:y+2,width:tw-6,height:rh-4,rx:6,fill:"none",opacity:0}); svg.appendChild(fillR);
+    const t=text(tx+20,y+rh/2+7,lb,{fill:C.ink,"font-family":"JetBrains Mono","font-size":RF}); svg.appendChild(t);
+    const tag=text(tx+tw-20,y+rh/2+7,"",{"text-anchor":"end","font-family":"JetBrains Mono","font-size":RF-3,"font-weight":700}); svg.appendChild(tag);
+    const lock=el("g",{opacity:0}); lock.innerHTML=`<rect x="-9" y="-3" width="18" height="14" rx="3" fill="currentColor"/><path d="M-5.5 -3v-4a5.5 5.5 0 0 1 11 0v4" fill="none" stroke="currentColor" stroke-width="3"/>`;
+    svg.appendChild(lock);
+    return {y,mid:y+rh/2,fillR,t,tag,lock,tx}; });
+  /* actors */
+  const actors=R.actors.map((a,k)=>{ const col=C[a.color]||a.color||C.amber;
+    const ay=py+hh+(k+.5)*(n*rh/R.actors.length);
+    const g=el("g",{}); svg.appendChild(g);
+    g.appendChild(el("rect",{x:wx,y:ay-40,width:230,height:80,rx:14,fill:C.win,stroke:col,"stroke-width":2.5}));
+    g.appendChild(el("circle",{cx:wx+30,cy:ay,r:9,fill:col}));
+    g.appendChild(text(wx+50,ay-4,a.name,{fill:C.ink,"font-family":"JetBrains Mono","font-size":24,"font-weight":800}));
+    g.appendChild(text(wx+50,ay+22,a.sub||"",{fill:C.muted,"font-family":"JetBrains Mono","font-size":16}));
+    const wire=el("path",{fill:"none",stroke:col,"stroke-width":2.5,"stroke-dasharray":"8 6"}); svg.appendChild(wire);
+    const ptr=el("path",{d:"M0 -9L13 0L0 9Z",fill:col}); svg.appendChild(ptr);
+    const tagT=text(wx+115,ay+64,"",{"text-anchor":"middle",fill:col,"font-family":"JetBrains Mono","font-size":17,"font-weight":700}); svg.appendChild(tagT);
+    return {...a,col,ay,wire,ptr,tagT,dot:g.querySelector("circle")}; });
+  /* schedule: 0-.12 drain, .12-.2 refill, then each actor gets a window */
+  ANIM.push(t=>{
+    const drain=ease.inOut(phase(t,.02,.12)), refill=phase(t,.12,.2);
+    const per=(0.8-0.2)/actors.length;
+    const owner=new Array(n).fill(-1), skipping=new Array(n).fill(false);
+    let doneAll=t<.02||t>=.8;
+    actors.forEach((a,k)=>{
+      const [r0,r1]=R.claims[k], a0=.2+k*per, a1=a0+per;
+      /* scan pointer: walk past earlier-locked rows first, then claim own rows one by one */
+      const sw=1.6, steps=r0*sw+(r1-r0), u=phase(t,a0,a1-.04)*steps;
+      const idx=doneAll?r1-1:Math.min(r1-1,u<r0*sw?Math.floor(u/sw):r0+Math.floor(u-r0*sw));
+      const claimedTo=doneAll?r1:(t>=a0?Math.max(r0,idx+1):r0);
+      for(let i=r0;i<claimedTo;i++) owner[i]=k;
+      if(!doneAll&&t>=a0&&t<a1&&idx<r0) skipping[idx]=true;
+      const at=doneAll?(r0+r1-1)/2:(t<a0?r0:idx);
+      const ry=rows[Math.round(at)]?rows[Math.floor(at)].mid:rows[0].mid;
+      a.cur={ry,live:t>=a0&&t<a1,skip:!doneAll&&t>=a0&&t<a1&&idx<r0};
+    });
+    if(doneAll&&t<.02) {} // frame 0: final state
+    rows.forEach((r,i)=>{
+      let o=owner[i]; if(t>=.02&&t<.2) o=-1;
+      const drained=t>=.02&&t<.2;
+      const k=o, col=k>=0?actors[k].col:null;
+      /* drain: previously claimed rows slide out, fresh rows slide in */
+      const dx=drained?(t<.12?-40*drain:-40*(1-refill)):0;
+      const op=drained?(t<.12?1-drain:refill):1;
+      r.t.setAttribute("transform",`translate(${dx.toFixed(1)} 0)`); r.t.setAttribute("opacity",op.toFixed(2));
+      r.fillR.setAttribute("fill",col||"none"); r.fillR.setAttribute("opacity",col?.16:0);
+      r.lock.setAttribute("opacity",col&&!skipping[i]?1:0); r.lock.setAttribute("color",col||C.ink);
+      r.lock.setAttribute("transform",`translate(${r.tx+tw-(RF-3)*9.6} ${r.mid-4})`);
+      r.tag.textContent=skipping[i]?"locked → skip":col?(R.tag||"locked by ")+actors[k].name.replace(/^worker\s*/i,""):"";
+      r.tag.setAttribute("fill",skipping[i]?C.green:col||C.green);
+      r.fillR.setAttribute("stroke",skipping[i]?C.green:"none"); r.fillR.setAttribute("stroke-width",2.5);
+    });
+    actors.forEach((a,k)=>{
+      const x1=wx+230, x2=tx-10, ym=a.cur.ry;
+      a.wire.setAttribute("d",`M${x1} ${a.ay} C${x1+60} ${a.ay} ${x2-70} ${ym} ${x2-14} ${ym}`);
+      a.wire.setAttribute("stroke-dashoffset",(-t*14*8).toFixed(1));
+      a.wire.setAttribute("opacity",(t>=.02&&t<.2)?.15:1);
+      a.ptr.setAttribute("transform",`translate(${x2-14} ${ym})`);
+      a.dot.setAttribute("opacity",a.cur.live?(Math.sin(TAU*t*10)>0?1:.3):1);
+      a.tagT.textContent=a.cur.skip?"skips locked rows":"";
+    });
+  });
+}else if(S.output){
+  /* terminal output: prompt + lines. Frame 0 shows the full printout; mid-loop
+     the panel clears and the lines type back in, in order, behind a cursor. */
+  const OS=S.outputSize||26;
+  svg.appendChild(el("rect",{x:wx,y:py,width:ww,height:ph,rx:18,fill:"#0F131B",stroke:C.line,"stroke-width":2}));
+  const outs=S.output.map((ln,i)=>{ const c=/^(ok|✓|pass)/i.test(ln)?C.green:/^(err|✗|fail)/i.test(ln)?C.red:/^\$/.test(ln)?C.ink:C.muted;
+    const t=text(wx+30,py+50+i*OS*1.55,ln,{fill:c,"font-family":"JetBrains Mono","font-size":OS,"font-weight":/^\$/.test(ln)?700:400});
+    svg.appendChild(t); return {t,ln,y:py+50+i*OS*1.55}; });
+  const cur=el("rect",{width:OS*0.6,height:OS*1.05,fill:C.accent,opacity:0}); svg.appendChild(cur);
+  const cw=outs.length?(()=>{ const p=text(0,-99,"M",{"font-family":"JetBrains Mono","font-size":OS}); svg.appendChild(p); const w=p.getComputedTextLength(); p.remove(); return w; })():0;
+  /* typing budget: a blank line still costs a beat, so the gaps read as pauses */
+  const cost=outs.map(o=>Math.max(6,o.ln.length)), total=cost.reduce((a,b)=>a+b,0);
+  const CLR=.2, T0=.24, T1=.72;
+  ANIM.push(t=>{
+    const typing=t>=T0&&t<T1, cleared=t>=CLR&&t<T0;
+    let budget=typing?phase(t,T0,T1)*total:total, at=null;
+    outs.forEach((o,i)=>{
+      if(cleared){ o.t.textContent=""; return; }
+      const n=Math.max(0,Math.min(o.ln.length,Math.floor(budget/cost[i]*o.ln.length)));
+      o.t.textContent=o.ln.slice(0,n);
+      if(typing&&budget>0&&budget<cost[i]) at={x:wx+30+n*cw,y:o.y};
+      budget-=cost[i]; });
+    if(cleared) at={x:wx+30,y:outs[0].y};
+    cur.setAttribute("opacity",at?1:0);
+    if(at){ cur.setAttribute("x",at.x.toFixed(1)); cur.setAttribute("y",(at.y-OS*0.85).toFixed(1)); }
+  });
+}
+
+/* caption strip */
+if(S.caption) svg.appendChild(text(M,H-34,S.caption,{fill:C.ink,"font-family":"Space Grotesk","font-size":24,"font-weight":500}));
+
+window.setFrame=(f,total)=>{
+  const t=f/total;
+  caret.setAttribute("opacity",(t*8)%1<.55?1:0);
+  /* scan sweep across the focus line at loop start (motion onset) and again mid-loop */
+  bars.forEach(b=>{ const u=Math.max(phase(t,0,.16),0), v=phase(t,.5,.66);
+    const k=t<.2?u:v, live=(t<.16)||(t>=.5&&t<.66);
+    b.sw.setAttribute("x",(wx-260+(ww+260)*k).toFixed(1)); b.sw.setAttribute("opacity",live?1:0); });
+  ANIM.forEach(fn=>fn(t));
+};
+});
+</script>

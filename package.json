@@ -1,0 +1,30 @@
+{
+  "name": "cover-kit",
+  "version": "1.0.0",
+  "description": "Animated GIF covers for technical posts, rendered from a JSON spec: nine styles, a headless-Chrome frame renderer, an overlap check and a rotation linter.",
+  "main": "render.js",
+  "scripts": {
+    "build": "./build-covers.sh",
+    "samples": "./build-covers.sh --samples",
+    "rotation": "node check-rotation.js"
+  },
+  "keywords": [
+    "gif",
+    "cover",
+    "linkedin",
+    "social-image",
+    "puppeteer",
+    "svg",
+    "animation"
+  ],
+  "author": "Rishabh Sharma",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^25.10.0"
+  },
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rishabh0111/cover-kit.git"
+  }
+}

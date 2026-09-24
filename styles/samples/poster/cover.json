@@ -1,0 +1,12 @@
+{
+  "style": "poster",
+  "brand": "rishabh0111.github.io",
+  "kicker": "AI AGENTS · MCP",
+  "lines": [
+    { "text": "My support AI" , "size": 190 },
+    { "text": "is told not to", "style": "strike" },
+    { "text": "cannot.", "style": "invert", "width": 0.9, "size": 280 }
+  ],
+  "sub": "Where the guardrail actually belongs",
+  "footnote": "A missing edge, not a filter."
+}

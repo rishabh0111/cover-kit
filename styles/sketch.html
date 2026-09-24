@@ -1,0 +1,141 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>sketch cover</title>
+<body>
+<script src="base.js"></script>
+<script>
+/* SKETCH — a whiteboard. Everything in `draw[]` is hand-drawn (jittered double
+   strokes, Caveat marker type) and boils: the jitter re-rolls every few frames,
+   like a hand-animated line. Items with `anno: true` are the red-pen layer: an
+   eraser wipes them at loop start and a marker redraws them one by one.
+   Coordinates are canvas pixels (1200 x 1200).                              */
+const {el,text,phase,ease,clamp,TAU,rng}=CS, S=window.SPEC;
+CS.run(()=>{
+const W=S.width||1200, H=S.height||1200;
+const INK={blue:"#1E4FD8",red:"#E0302A",black:"#23252B",green:"#138A43",grey:"#8A8F98",amber:"#D98A04"};
+const col=c=>INK[c]||c||INK.black;
+const {svg,defs}=CS.setup(W,H,S.ground||"#FBFAF5");
+
+/* graph paper */
+const grid=el("g",{stroke:"#DDE6F0","stroke-width":1.2}); svg.appendChild(grid);
+for(let x=40;x<W;x+=40) grid.appendChild(el("line",{x1:x,x2:x,y1:0,y2:H}));
+for(let y=40;y<H;y+=40) grid.appendChild(el("line",{x1:0,x2:W,y1:y,y2:y}));
+
+/* ---- rough geometry: each call returns a path d, deterministic per seed ---- */
+const J=S.jitter||2.6;
+const roughLine=(r,[x1,y1],[x2,y2],amp=J)=>{
+  const len=Math.hypot(x2-x1,y2-y1), nx=-(y2-y1)/len, ny=(x2-x1)/len, bow=(r()-.5)*Math.min(len*.03,amp*2.5);
+  const j=()=>(r()-.5)*amp;
+  const a=[x1+j(),y1+j()], b=[x2+j(),y2+j()];
+  const c1=[x1+(x2-x1)*.35+nx*bow+j(),y1+(y2-y1)*.35+ny*bow+j()], c2=[x1+(x2-x1)*.7+nx*bow+j(),y1+(y2-y1)*.7+ny*bow+j()];
+  return `M${a[0].toFixed(1)} ${a[1].toFixed(1)}C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${b[0].toFixed(1)} ${b[1].toFixed(1)}`; };
+const roughEllipse=(r,cx,cy,rx,ry,amp=J)=>{
+  const a0=r()*TAU, sweep=TAU+.35+r()*.25, n=28; let d="";
+  for(let i=0;i<=n;i++){ const a=a0+sweep*i/n, k=1+(r()-.5)*amp/Math.max(rx,ry)*2;
+    const x=cx+Math.cos(a)*rx*k, y=cy+Math.sin(a)*ry*k; d+=(i?"L":"M")+x.toFixed(1)+" "+y.toFixed(1); }
+  return d; };
+const quad=([x1,y1],[x2,y2],bend)=>{ const mx=(x1+x2)/2-(y2-y1)*bend, my=(y1+y2)/2+(x2-x1)*bend; return [mx,my]; };
+const roughCurve=(r,p1,p2,bend,amp=J)=>{ const [mx,my]=quad(p1,p2,bend), j=()=>(r()-.5)*amp;
+  return `M${(p1[0]+j()).toFixed(1)} ${(p1[1]+j()).toFixed(1)}Q${(mx+j()*2).toFixed(1)} ${(my+j()*2).toFixed(1)} ${(p2[0]+j()).toFixed(1)} ${(p2[1]+j()).toFixed(1)}`; };
+
+/* shape → list of stroke paths (strokes are drawn in order for the pen) */
+const strokes=(it,seed)=>{ const r=rng(seed), out=[];
+  const dbl=f=>{ out.push(f(r)); if(it.single!==true) out.push(f(r)); };
+  switch(it.type){
+    case "box": { const {x,y,w,h}=it, P=[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
+      for(let i=0;i<4;i++) dbl(r=>roughLine(r,P[i],P[(i+1)%4])); break; }
+    case "poly": { const P=it.points; for(let i=0;i<P.length-(it.close?0:1);i++) dbl(r=>roughLine(r,P[i],P[(i+1)%P.length])); break; }
+    case "line": case "strike": case "underline": dbl(r=>roughLine(r,it.from,it.to,it.type==="strike"?J*2:J)); break;
+    case "circle": out.push(roughEllipse(r,it.cx,it.cy,it.rx||it.r,it.ry||it.r)); break;
+    case "arrow": { const b=it.bend||0, p1=it.from, p2=it.to;
+      out.push(roughCurve(r,p1,p2,b));
+      const [mx,my]=quad(p1,p2,b), ang=Math.atan2(p2[1]-my,p2[0]-mx), hl=it.head||22;
+      [-.5,.5].forEach(s=>out.push(roughLine(r,p2,[p2[0]-hl*Math.cos(ang+s),p2[1]-hl*Math.sin(ang+s)],J*.6))); break; }
+  } return out; };
+
+/* build items: each item owns a group; strokes are re-rolled on boil */
+const BOIL=[11,23,37];                           /* three seeds, cycled */
+const items=(S.draw||[]).map((it,k)=>{
+  const g=el("g",{}); svg.appendChild(g);
+  const c=col(it.color), sw=it.width||(it.type==="strike"?6:it.anno?5:4.2);
+  const I={it,g,paths:[],texts:[],anno:!!it.anno};
+  if(it.fill){ const f=el("path",{fill:col(it.fill),opacity:it.fillOpacity||.14}); g.appendChild(f); I.fillEl=f; }
+  const n=strokes(it,1).length;
+  for(let i=0;i<n;i++){ const p=el("path",{fill:"none",stroke:c,"stroke-width":sw,"stroke-linecap":"round","stroke-linejoin":"round"}); g.appendChild(p); I.paths.push(p); }
+  if(it.type==="text"||it.label){
+    const lines=String(it.text||it.label).split("\n"), fs=it.size||44;
+    const bx=it.type==="box"?it.x+it.w/2:it.type==="circle"?it.cx:it.x, by=it.type==="box"?it.y+it.h/2:it.type==="circle"?it.cy:it.y;
+    const anchor=it.anchor||(it.type==="text"?"start":"middle");
+    const y0=it.type==="text"?by:by-(lines.length-1)*fs*.55+fs*.33;
+    lines.forEach((ln,i)=>{ const t=text(bx,y0+i*fs*1.1,ln,{"text-anchor":anchor,fill:col(it.textColor||it.color),"font-family":"Caveat","font-size":fs,"font-weight":it.weight||700,"data-g":"it"+k});
+      g.appendChild(t); I.texts.push(t); }); }
+  return I; });
+const setShape=(I,seed)=>{ const d=strokes(I.it,seed+I.it.type.length);
+  I.paths.forEach((p,i)=>p.setAttribute("d",d[i]));
+  if(I.fillEl&&I.it.type==="box"){ const {x,y,w,h}=I.it; I.fillEl.setAttribute("d",`M${x+4} ${y+5}L${x+w-3} ${y+3}L${x+w-5} ${y+h-4}L${x+3} ${y+h-3}Z`); } };
+items.forEach(I=>setShape(I,BOIL[0]));
+
+/* annotation lengths + text widths, for the draw-on */
+const annos=items.filter(I=>I.anno);
+annos.forEach(I=>{ I.lens=I.paths.map(p=>p.getTotalLength());
+  I.clips=I.texts.map((t,i)=>{ const b=t.getBBox(), id=`ac${Math.random().toString(36).slice(2)}`;
+    const cp=el("clipPath",{id}); const r=el("rect",{x:b.x-6,y:b.y-10,width:0,height:b.height+20}); cp.appendChild(r); defs.appendChild(cp);
+    t.setAttribute("clip-path",`url(#${id})`); return {r,b}; });
+  I.cost=I.lens.reduce((a,b)=>a+b,0)*.6+I.clips.reduce((a,c)=>a+c.b.width,0); });
+
+/* marker pen + eraser */
+const pen=el("g",{opacity:0}); pen.innerHTML=`<g transform="rotate(35)"><rect x="-9" y="-78" width="18" height="60" rx="5" fill="#E0302A" stroke="#23252B" stroke-width="3"/>
+  <path d="M-9 -18L9 -18L4 -4L-4 -4Z" fill="#F2F2F2" stroke="#23252B" stroke-width="3"/><path d="M-4 -4L4 -4L0 3Z" fill="#E0302A"/></g>`;
+const eraser=el("g",{opacity:0}); eraser.innerHTML=`<g transform="rotate(-12)"><rect x="-80" y="-34" width="160" height="68" rx="12" fill="#3B3F47" stroke="#23252B" stroke-width="3"/>
+  <rect x="-80" y="14" width="160" height="20" rx="6" fill="#C9B79C" stroke="#23252B" stroke-width="3"/></g>`;
+
+/* title: marker text, second line in blue with a hand underline */
+const TS=S.titleSize||88;
+const tt=text(56,112,S.title,{fill:INK.black,"font-family":"Caveat","font-size":TS,"font-weight":700,"data-g":"title"}); svg.appendChild(tt);
+const ta=text(56,112+TS*.9,S.titleAccent||"",{fill:INK.blue,"font-family":"Caveat","font-size":TS,"font-weight":700,"data-g":"title"}); svg.appendChild(ta);
+CS.fit(tt,W-112,TS,48); CS.fit(ta,W-112,TS,48);
+const ul={it:{type:"underline",from:[58,112+TS*.9+18],to:[58+ta.getComputedTextLength(),112+TS*.9+14]},paths:[]};
+const ulp=el("path",{fill:"none",stroke:INK.blue,"stroke-width":5,"stroke-linecap":"round"}); svg.appendChild(ulp);
+if(S.footnote) svg.appendChild(text(56,H-44,S.footnote,{fill:INK.grey,"font-family":"Caveat","font-size":40,"font-weight":700}));
+CS.brand(svg,S,{fill:INK.grey,bar:INK.red},W,H-44);
+svg.appendChild(eraser); svg.appendChild(pen);
+
+/* timeline: 0–.12 eraser wipes the red layer, .14–.72 pen redraws it item by item */
+const E0=.0, E1=.12, D0=.14, D1=.72;
+const tot=annos.reduce((a,I)=>a+I.cost,0); let acc=0;
+annos.forEach(I=>{ I.t0=D0+(D1-D0)*acc/tot; acc+=I.cost; I.t1=D0+(D1-D0)*acc/tot; });
+const bb=annos.length?annos.map(I=>I.g.getBBox()):[];
+const ax0=Math.min(...bb.map(b=>b.x))-40, ax1=Math.max(...bb.map(b=>b.x+b.width))+40,
+      ay0=Math.min(...bb.map(b=>b.y)), ay1=Math.max(...bb.map(b=>b.y+b.height));
+
+window.setFrame=(f,total)=>{
+  const t=f/total, step=Math.floor(f/3)%3;
+  items.forEach(I=>setShape(I,BOIL[step]));
+  ulp.setAttribute("d",roughLine(rng(BOIL[step]),ul.it.from,ul.it.to,J));
+  items.forEach((I,k)=>I.texts.forEach(tx=>{ const r=rng(BOIL[step]*7+k)(); tx.setAttribute("transform",`rotate(${((r-.5)*.8).toFixed(2)} ${tx.getAttribute("x")} ${tx.getAttribute("y")})`); }));
+  /* eraser: sweeps diagonally across the annotation bbox in a zig-zag */
+  const ue=phase(t,E0+.005,E1);
+  const erasing=t>E0+.005&&t<E1;
+  eraser.setAttribute("opacity",erasing?1:0);
+  if(erasing){ const zig=Math.abs(((ue*3)%2)-1);
+    eraser.setAttribute("transform",`translate(${(ax0+(ax1-ax0)*zig).toFixed(1)} ${(ay0+(ay1-ay0)*ue).toFixed(1)})`); }
+  let penAt=null;
+  annos.forEach(I=>{
+    /* visible fraction: 1 before erase, wiped by the eraser's sweep, redrawn in its slot */
+    let u;
+    if(t<=E0+.005) u=1;
+    else if(t<D0){ const gb=I.g.getBBox(), ey=ay0+(ay1-ay0)*ue; u=erasing&&ey<gb.y?1:0; }
+    else u=clamp((t-I.t0)/(I.t1-I.t0));
+    const total=I.cost; let budget=u*total;
+    I.paths.forEach((p,i)=>{ const L=I.lens[i], c=L*.6, v=clamp(budget/c); budget-=c;
+      p.setAttribute("stroke-dasharray",`${L} ${L}`); p.setAttribute("stroke-dashoffset",(L*(1-v)).toFixed(1)); p.setAttribute("opacity",v>0?1:0);
+      if(v>0&&v<1&&t>=D0) { const q=p.getPointAtLength(L*v); penAt=[q.x,q.y]; } });
+    I.clips.forEach(c=>{ const v=clamp(budget/c.b.width); budget-=c.b.width;
+      c.r.setAttribute("width",(c.b.width+12)*v);
+      if(v>0&&v<1&&t>=D0) penAt=[c.b.x+c.b.width*v,c.b.y+c.b.height*.7]; });
+  });
+  pen.setAttribute("opacity",penAt?1:0);
+  if(penAt) pen.setAttribute("transform",`translate(${penAt[0].toFixed(1)} ${penAt[1].toFixed(1)})`);
+};
+});
+</script>
