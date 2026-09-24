@@ -1,0 +1,10 @@
+{
+  "_": "Copy to covers/palette.json (or point $PALETTE at it). Every cover under that folder picks it up; a spec's own keys still win. Keys starting with _ are ignored.",
+  "brand": "yoursite.dev",
+  "accent": "#FF5A1F",
+  "_ink": "Optional text colour. Skipped on grounds where it would fall below 4.5:1.",
+  "styles": {
+    "poster": { "ground": "#FFE14D" },
+    "bignumber": { "accent": "#FFD7C2" }
+  }
+}

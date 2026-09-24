@@ -14,6 +14,7 @@ const {el,text,fit,phase,ease,clamp,TAU}=CS, S=window.SPEC;
 CS.run(()=>{
 const W=S.width||1200, H=S.height||1200, M=64;
 const C={bg:S.ground||"#FF6A4D",ink:S.ink||"#17110F",paper:S.paper||"#FFF4EC",soft:S.soft||"rgba(23,17,15,.66)",line:"rgba(23,17,15,.24)"};
+C.accent=S.accent||C.paper;   /* title accent line + brand bar; paper stays the highlight's text colour */
 const {svg,defs}=CS.setup(W,H,C.bg);
 
 /* kicker + title (second line in paper) */
@@ -21,7 +22,7 @@ let y=M;
 if(S.kicker){ y+=26; svg.appendChild(text(M,y,S.kicker,{fill:C.ink,"font-family":"JetBrains Mono","font-size":22,"font-weight":800,"letter-spacing":3})); y+=20; }
 const TS=S.titleSize||70;
 [S.title,S.titleAccent].filter(Boolean).forEach((ln,i)=>{ y+=TS*1.04;
-  const t=text(M,y,ln,{fill:i?C.paper:C.ink,"font-family":"Space Grotesk","font-weight":700,"letter-spacing":-1.5,"data-g":"title"});
+  const t=text(M,y,ln,{fill:i?C.accent:C.ink,"font-family":"Space Grotesk","font-weight":700,"letter-spacing":-1.5,"data-g":"title"});
   svg.appendChild(t); fit(t,W-2*M,TS,36); });
 
 /* rows */
@@ -62,7 +63,7 @@ const rows=items.map((it,i)=>{
 });
 
 if(S.footnote) svg.appendChild(text(M,H-44,S.footnote,{fill:C.ink,"font-family":"Instrument Serif","font-style":"italic","font-size":34}));
-CS.brand(svg,S,{fill:C.ink,bar:C.paper},W,H-44);
+CS.brand(svg,S,{fill:C.ink,bar:C.accent},W,H-44);
 
 /* schedule: each row owns a slot in [.06,.92]; the bar wipes in, holds, wipes out */
 const T0=.06, T1=.92, slot=(T1-T0)/Math.max(1,n);

@@ -1,0 +1,22 @@
+{
+  "_": "Illustrative example, not data.",
+  "style": "compare",
+  "brand": "rishabh0111.github.io",
+  "kicker": "BENCHMARK · ILLUSTRATIVE",
+  "title": "Same query, four drivers.",
+  "titleAccent": "One tail is not like the others.",
+  "options": [
+    { "name": "Driver A", "tag": "sync, pooled" },
+    { "name": "Driver B", "tag": "async" },
+    { "name": "Driver C", "tag": "ORM on top" },
+    { "name": "Driver D", "tag": "no pool" }
+  ],
+  "bars": {
+    "metric": "p99 latency",
+    "unit": "ms",
+    "values": [38, 24, 61, 190],
+    "better": "lower",
+    "note": "Made-up numbers to show the style; 10k requests, 50 concurrent."
+  },
+  "footnote": "The median hid it. The tail didn't."
+}

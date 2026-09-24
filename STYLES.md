@@ -1,6 +1,6 @@
 # Cover styles
 
-Eleven styles for an animated post cover. Pick one per post by its content,
+Thirteen styles for an animated post cover. Pick one per post by its content,
 then check the calendar so the feed never shows the same shape twice in a row.
 Open `styles/gallery.html` to see every style animating, and the upcoming
 posts as a feed (`node check-rotation.js --plan --feed` refreshes that feed).
@@ -16,9 +16,11 @@ thumbnail size before anyone reads a word. The brand mark stays constant.
 |---|---|---|---|---|
 | `flow` | `bbg.html` | white | has a mechanism with several moving parts | dense by design |
 | `terminal` | `styles/terminal.html` | near-black | turns on one query, config, snippet or printed output | ≤ 10 code lines |
+| `diff` | `styles/diff.html` | pale grey, white window | is one code change: a refactor, a bug fix, a config change | ≤ 12 diff lines |
 | `bignumber` | `styles/bignumber.html` | electric blue | is one number: a measurement, an estimate, a before → after | 1 number + ≤ 6 words |
 | `chart` | `styles/chart.html` | cream paper | is a trade-off curve, sweep or operating point | title + 2 axis labels |
 | `versus` | `styles/versus.html` | split, slanted | compares two options, neither wrong | ≤ 5 rows × ≤ 5 words |
+| `compare` | `styles/compare.html` | teal, white card | compares 3–4 options, or benchmarks / ranks them | ≤ 5 rows × ≤ 4 words, or 1 bar per option |
 | `sketch` | `styles/sketch.html` | whiteboard | is a mental model, or redraws a picture people learned wrong | ≤ 6 labels |
 | `poster` | `styles/poster.html` | yellow | states an opinion, rule or myth-bust | ≤ 8 words |
 | `sequence` | `styles/sequence.html` | navy blueprint | depends on order: requests, retries, races, handshakes | ≤ 7 messages |
@@ -35,10 +37,10 @@ thumbnail size before anyone reads a word. The brand mark stays constant.
 Take the first yes:
 
 1. Is the post **one number**? → `bignumber` (`chart` if it only makes sense on a curve)
-2. **One piece of code or output**? → `terminal`
+2. **One piece of code or output**? → `terminal` (**one change to code**, before → after? → `diff`)
 3. Is **order** the point? → `sequence` between actors, `timeline` across dates
 4. **One artefact's structure**? → `anatomy`
-5. **A vs B**? → `versus`
+5. **A vs B**? → `versus`; **3–4 options, or a benchmark**? → `compare`
 6. **A list** of lessons, mistakes or steps? → `list` (redact the one worth clicking for)
 7. **An opinion or rule** in 8 words? → `poster`
 8. **A model to redraw**? → `sketch`
@@ -80,10 +82,17 @@ composition, which is what LinkedIn (and most feeds) show if a GIF freezes.
 - **terminal** — sweeps the focus line. Its `rows` panel shows actors claiming
   table rows, with later actors visibly skipping locked ones. An `output` panel
   clears mid-loop and types its lines back in, in order, behind a cursor.
+- **diff** — strikes each removed line in turn, then dims them; each added
+  line wipes in (green tint sweeps left → right, the code types in behind it
+  with a caret); the `+N −M` pill counts along; then holds.
 - **bignumber** — rolls through each `steps[]` value while the stepper fills,
   then holds on the last step.
 - **chart** — a cursor sweeps the curve with live readouts and settles on `mark`.
 - **versus** — the VS badge punches in, then each row lights left, then right.
+- **compare** — `rows`: a highlight walks the table row by row; in each row
+  the `best` cell punches with an accent ring and the ✓ / ✗ / ~ marks redraw.
+  `bars`: the bars drop to zero, then regrow one by one while their numbers
+  count up; the winner's badge punches in, then holds.
 - **sketch** — hand jitter re-rolls every 3 frames (line boil). An eraser wipes
   the `anno: true` layer, and a marker redraws it, following the tip.
 - **poster** — the `strike` bar retracts and redraws, the `invert` line stamps
@@ -106,6 +115,9 @@ composition, which is what LinkedIn (and most feeds) show if a GIF freezes.
   `styles/base.js` holds the shared parts: fonts, brand mark, fit and wrap, the
   overlap check, and easing. It builds only after fonts load, so every
   measurement uses the real font.
+- Colours: every style reads `ground`, `ink` and `accent` from the spec, or
+  from a `palette.json` (see `palette.js` and the README), falling back to its
+  own. A palette accent that fails contrast on a style's ground is skipped.
 - `OVERLAPS:` from the build means the spec collides. Fix the spec. Decorative
   text is exempt via `class="free"`, and parts of one label share a `data-g`.
 - Fonts in `fonts/`, all SIL OFL 1.1, each file carrying its own copyright:

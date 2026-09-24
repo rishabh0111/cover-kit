@@ -12,7 +12,7 @@
 const {el,text,fit,phase,ease,clamp,TAU}=CS, S=window.SPEC;
 CS.run(()=>{
 const W=S.width||1200, H=S.height||1200, M=48;
-const C={bg:S.ground||"#0A1A33",grid:"#13294B",line:"#7DD3FC",ink:"#E2E8F0",muted:"#8BA3C7",hot:S.accent||"#FBBF24",ok:"#4ADE80",head:"#10264A"};
+const C={bg:S.ground||"#0A1A33",grid:"#13294B",line:"#7DD3FC",ink:S.ink||"#E2E8F0",muted:"#8BA3C7",hot:S.accent||"#FBBF24",ok:"#4ADE80",head:"#10264A"};
 const {svg,defs}=CS.setup(W,H,C.bg);
 const mk=(id,c,s=22)=>`<marker id="${id}" viewBox="0 0 12 12" refX="10" refY="6" markerUnits="userSpaceOnUse" markerWidth="${s}" markerHeight="${s}" orient="auto-start-reverse"><path d="M1 1L10 6L1 11Z" fill="${c}"/></marker>`;
 defs.innerHTML=mk("ah",C.line)+mk("ahh",C.hot,40)+`<pattern id="bp" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="${C.grid}" stroke-width="1.5"/></pattern>`;

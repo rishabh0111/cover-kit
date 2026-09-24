@@ -1,0 +1,21 @@
+{
+  "_": "Illustrative example, not data.",
+  "style": "compare",
+  "brand": "rishabh0111.github.io",
+  "kicker": "API DESIGN · THREE WAYS",
+  "title": "REST, gRPC or GraphQL?",
+  "titleAccent": "Depends who's calling.",
+  "options": [
+    { "name": "REST",    "tag": "resources + HTTP" },
+    { "name": "gRPC",    "tag": "binary RPC" },
+    { "name": "GraphQL", "tag": "one query endpoint" }
+  ],
+  "rows": [
+    { "key": "works from curl",   "cells": ["✓", "✗", "~"],                          "best": 0 },
+    { "key": "payload",           "cells": ["JSON text", "Protobuf", "JSON, shaped"], "best": 1 },
+    { "key": "HTTP caching",      "cells": ["✓ built in", "✗", "~ extra work"],       "best": 0 },
+    { "key": "streaming",         "cells": ["~", "✓ both ways", "~ subscriptions"],   "best": 1 },
+    { "key": "client picks fields", "cells": ["✗", "✗", "✓"],                         "best": 2 }
+  ],
+  "footnote": "Pick by the caller, not the benchmark."
+}

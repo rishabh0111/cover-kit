@@ -13,6 +13,8 @@ const {el,text,phase,ease,clamp,TAU,rng}=CS, S=window.SPEC;
 CS.run(()=>{
 const W=S.width||1200, H=S.height||1200;
 const INK={blue:"#1E4FD8",red:"#E0302A",black:"#23252B",green:"#138A43",grey:"#8A8F98",amber:"#D98A04"};
+/* palette overrides: accent is the red pen, ink the black marker */
+if(S.accent) INK.red=S.accent; if(S.ink) INK.black=S.ink;
 const col=c=>INK[c]||c||INK.black;
 const {svg,defs}=CS.setup(W,H,S.ground||"#FBFAF5");
 

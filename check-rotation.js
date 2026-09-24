@@ -9,10 +9,11 @@
 // Exit 1 if any enforced post breaks a hard rule.
 const fs = require("fs");
 const path = require("path");
+const palette = require("./palette");
 
-const TONE = { flow: "light", terminal: "dark", bignumber: "colour", chart: "light", versus: "split",
+const TONE = { flow: "light", terminal: "dark", diff: "light", bignumber: "colour", chart: "light", versus: "split",
                sketch: "light", poster: "colour", sequence: "dark", anatomy: "light",
-               list: "colour", timeline: "dark" };
+               list: "colour", timeline: "dark", compare: "colour" };
 const args = process.argv.slice(2);
 const flag = (name, withValue) => {
   const i = args.indexOf(name); if (i < 0) return undefined;
@@ -33,10 +34,12 @@ const posts = [];
     const full = path.join(dir, e.name), m = e.name.match(/^(\d{4}-\d{2}-\d{2})-(.+)$/);
     const spec = path.join(full, "cover.json");
     if (m && fs.existsSync(spec)) {
-      const s = JSON.parse(fs.readFileSync(spec, "utf8"));
+      const s = palette.apply(JSON.parse(fs.readFileSync(spec, "utf8")), spec).spec;
       const current = s.style || (s.template === "bbg.html" ? "flow" : s.template || "?");
       const style = plan[m[2]] ? plan[m[2]].style : current;
-      posts.push({ date: m[1], slug: m[2], dir: full, current, style, tone: TONE[style] || "?" });
+      /* a ground set in the spec or palette changes the tone; a planned restyle uses that style's default */
+      const tone = (style === current && palette.toneOf(s.ground)) || TONE[style] || "?";
+      posts.push({ date: m[1], slug: m[2], dir: full, current, style, tone });
     } else walk(full);
   }
 })(root);

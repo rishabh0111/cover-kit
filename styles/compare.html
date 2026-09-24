@@ -1,0 +1,236 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>compare cover</title>
+<body>
+<script src="base.js"></script>
+<script>
+/* COMPARE — three or four options side by side (two work too; for a plain
+   A vs B prefer `versus`). A white card on a teal ground, one colour per
+   option. Keys:
+     title, titleAccent (second line, light), optional kicker, footnote, brand
+     options[]  2–4 of { name, tag?, color? }: the column heads / bar rows.
+                `color` overrides the built-in per-option colour.
+   Then one of two modes, picked by which key is present:
+     rows[]     a comparison table, ≤ 5 rows: { key, cells: [one per option],
+                best?: index }. Cells ≤ 4 words. A cell that is "✓", "✗" or
+                "~" (optionally followed by words: "✓ built in") draws a mark
+                (check / cross / partial) instead of the glyph. `best` puts an
+                accent pill on the winning cell of that row.
+     bars       a benchmark or ranking: { metric, unit, values: [number per
+                option], better: "higher" | "lower", note? }. One horizontal
+                bar per option, value labels, the winner badged.
+   Colours: ground (teal), ink, accent (the best pill / winner badge), paper
+   (the card), and colors[] (the per-option set) — all optional.
+   Motion: rows — a highlight walks the rows; in each, the best cell punches
+   with an accent ring and the marks redraw. bars — the bars drop to zero and
+   regrow in turn while their numbers count up, then the winner's badge
+   punches; hold. Frame 0 = the finished table / chart.                      */
+const {el,text,fit,wrap,phase,ease,clamp,TAU}=CS, S=window.SPEC;
+CS.run(()=>{
+const W=S.width||1200, H=S.height||1200, M=64;
+const hex=c=>{ const m=String(c).replace("#",""); const v=m.length===3?m.split("").map(x=>x+x).join(""):m.slice(0,6);
+  const n=parseInt(v,16); return [n>>16&255,n>>8&255,n&255]; };
+const lum=c=>{ const [r,g,b]=hex(c).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);}); return .2126*r+.7152*g+.0722*b; };
+const contrast=(a,b)=>{ const x=lum(a),y=lum(b); return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); };
+const onColor=(bg,dark)=>contrast(bg,"#FFFFFF")>=contrast(bg,dark)?"#FFFFFF":dark;
+
+const C={bg:S.ground||"#0E9F8A", ink:S.ink||"#0B2622", accent:S.accent||"#FFD43B"};
+/* the card stays readable whatever the palette: a dark card when the ink is light */
+const inkLight=lum(C.ink)>.45;
+C.paper=S.paper||(inkLight?"#10201E":"#FFFFFF");
+C.cardInk=contrast(C.ink,C.paper)>=4.5?C.ink:(lum(C.paper)>.4?"#0B2622":"#F4FBF9");
+C.soft=C.cardInk+"99"; C.rule=C.cardInk+"1F"; C.track=C.cardInk+"12";
+C.head=contrast(C.ink,C.bg)>=3?C.ink:onColor(C.bg,"#0B2622");
+C.lead=contrast("#FFFFFF",C.bg)>=2.2&&C.head!=="#FFFFFF"?"#FFFFFF":(contrast(C.accent,C.bg)>=2.2?C.accent:C.head);
+C.onAccent=onColor(C.accent,"#0B2622");
+C.yes="#0B8A63"; C.no="#E03131"; C.part="#C98A00";
+const PAL=S.colors||["#3B5BDB","#F76707","#9C36B5","#1098AD"];
+const opts=(S.options||[]).slice(0,4).map((o,i)=>typeof o==="string"?{name:o}:o);
+const N=opts.length, OC=opts.map((o,i)=>o.color||PAL[i%PAL.length]);
+const {svg,defs}=CS.setup(W,H,C.bg);
+
+/* kicker + title */
+let y=M;
+if(S.kicker){ y+=26; svg.appendChild(text(M,y,S.kicker,{fill:C.head,"font-family":"JetBrains Mono","font-size":22,"font-weight":800,"letter-spacing":3})); y+=20; }
+const TS=S.titleSize||68;
+[S.title,S.titleAccent].filter(Boolean).forEach((ln,i)=>{ y+=TS*1.04;
+  const t=text(M,y,ln,{fill:i?C.lead:C.head,"font-family":"Space Grotesk","font-weight":700,"letter-spacing":-1.5,"data-g":"title"});
+  svg.appendChild(t); fit(t,W-2*M,TS,36); });
+
+/* the card, with a hard drop in darker ground */
+const cx0=M-8, cx1=W-M+8, cy0=y+46, cy1=H-(S.footnote?122:96), CW=cx1-cx0;
+svg.appendChild(el("rect",{x:cx0+10,y:cy0+12,width:CW,height:cy1-cy0,rx:30,fill:"#000",opacity:.2}));
+svg.appendChild(el("rect",{x:cx0,y:cy0,width:CW,height:cy1-cy0,rx:30,fill:C.paper}));
+const clip=el("clipPath",{id:"card"}); clip.appendChild(el("rect",{x:cx0,y:cy0,width:CW,height:cy1-cy0,rx:30})); defs.appendChild(clip);
+const inner=el("g",{"clip-path":"url(#card)"}); svg.appendChild(inner);
+const PAD=34;
+
+/* drawn marks: check, cross, partial; every path gets a dash length so it can redraw */
+const MARK={
+  "✓":["M-20 1L-6 16L22 -17",C.yes], "✔":["M-20 1L-6 16L22 -17",C.yes],
+  "✗":["M-16 -16L16 16M16 -16L-16 16",C.no], "✘":["M-16 -16L16 16M16 -16L-16 16",C.no], "×":["M-16 -16L16 16M16 -16L-16 16",C.no],
+  "~":["M-22 4C-14 -10 -6 -10 0 0S14 10 22 -4",C.part], "≈":["M-22 4C-14 -10 -6 -10 0 0S14 10 22 -4",C.part] };
+const splitMark=s=>{ s=String(s==null?"":s).trim(); const ch=[...s][0]; return MARK[ch]?{mark:ch,rest:s.slice(ch.length).trim()}:{mark:null,rest:s}; };
+const drawMark=(parent,ch,x,y,k,on)=>{ const [d,c0]=MARK[ch], col=on&&contrast(c0,on)<2.5?onColor(on,C.cardInk):c0;
+  const g=el("g",{transform:`translate(${x} ${y}) scale(${k})`}); parent.appendChild(g);
+  const p=el("path",{d,fill:"none",stroke:col,"stroke-width":9/k*1.0,"stroke-linecap":"round","stroke-linejoin":"round"});
+  g.appendChild(p); const L=p.getTotalLength(); p.setAttribute("stroke-dasharray",L); p.setAttribute("stroke-dashoffset",0); return {p,L}; };
+
+let frame=()=>{};
+
+if(S.rows){
+/* ---------- table mode ---------- */
+const rows=S.rows.slice(0,5), R=rows.length;
+const KW=S.keyWidth||(N>=4?210:250);
+const colX0=cx0+PAD+KW, colW=(cx1-PAD-colX0)/Math.max(1,N);
+const colC=i=>colX0+colW*(i+.5);
+/* header: a colour chip per option, the tag under it */
+const hasTag=opts.some(o=>o.tag), chipH=N>=4?86:96, hy=cy0+PAD;
+const HS=S.nameSize||(N>=4?50:58);
+opts.forEach((o,i)=>{
+  const x=colX0+colW*i+8, w=colW-16;
+  inner.appendChild(el("rect",{x:colX0+colW*i+4,y:cy0,width:colW-8,height:cy1-cy0,fill:OC[i],opacity:.06}));
+  svg.appendChild(el("rect",{x,y:hy,width:w,height:chipH,rx:18,fill:OC[i]}));
+  const nm=text(x+w/2,hy+chipH/2+HS*.36,o.name,{"text-anchor":"middle",fill:onColor(OC[i],"#0B2622"),"font-family":"Anton","font-size":HS,"data-g":"h"+i});
+  svg.appendChild(nm); fit(nm,w-28,HS,26);
+  if(o.tag){ const tg=text(x+w/2,hy+chipH+34,o.tag,{"text-anchor":"middle",fill:C.soft,"font-family":"Space Grotesk","font-size":24,"font-weight":600,"data-g":"h"+i});
+    svg.appendChild(tg); fit(tg,w-8,24,15); }
+});
+const top=hy+chipH+(hasTag?58:22), bot=cy1-PAD+6, rh=(bot-top)/Math.max(1,R);
+const VS=S.valueSize||(N>=4?30:34);
+/* the walking band sits under the row contents */
+const band=el("rect",{x:cx0,y:top,width:CW,height:rh,fill:C.bg,opacity:0}); inner.appendChild(band);
+const bandBar=el("rect",{x:cx0,y:top,width:10,height:rh,fill:C.bg,opacity:0}); inner.appendChild(bandBar);
+const RW=rows.map((r,k)=>{
+  const ry=top+rh*k, mid=ry+rh/2;
+  if(k) svg.appendChild(el("line",{x1:cx0+PAD,x2:cx1-PAD,y1:ry,y2:ry,stroke:C.rule,"stroke-width":2}));
+  /* key: mono caps, wraps to two lines */
+  const KS=S.keySize||23, kl=wrap(svg,String(r.key).toUpperCase(),KW-24,{"font-family":"JetBrains Mono","font-size":KS,"font-weight":800,"letter-spacing":1.5}).slice(0,3);
+  kl.forEach((ln,j)=>{ const t=text(cx0+PAD,mid+7+(j-(kl.length-1)/2)*KS*1.25,ln,{fill:C.cardInk,"font-family":"JetBrains Mono","font-size":KS,"font-weight":800,"letter-spacing":1.5,"data-g":"k"+k});
+    svg.appendChild(t); fit(t,KW-24,KS,13); });
+  const cells=(r.cells||[]).slice(0,N).map((c,i)=>{
+    const x=colC(i), g=el("g",{}); svg.appendChild(g);
+    const pill=el("rect",{rx:16,fill:C.accent,opacity:0}); const ring=el("rect",{rx:18,fill:"none",stroke:C.accent,"stroke-width":5,opacity:0});
+    g.appendChild(pill); svg.insertBefore(ring,g);
+    const {mark,rest}=splitMark(c), best=r.best===i, fill=best?onColor(C.accent,C.cardInk):C.cardInk;
+    const maxW=colW-40-(mark&&rest?50:0);
+    /* shrink to two lines, down to a floor; past it, allow a third line rather than clip */
+    let fs=VS, lines=[];
+    if(rest){ for(;;){ lines=wrap(svg,rest,maxW,{"font-family":"Space Grotesk","font-size":fs,"font-weight":700}); if(lines.length<=2||fs<=20)break; fs-=2; } lines=lines.slice(0,3); }
+    const lh=fs*1.12, mk=[];
+    let bx=x, bw=0, bh=0;
+    if(mark&&!rest){ mk.push(drawMark(g,mark,x,mid,1.15,best&&C.accent)); bw=60; bh=50; }
+    else{
+      const tx=mark?x+25:x;
+      const tg=[]; lines.forEach((ln,j)=>{ const t=text(tx,mid+fs*.36+(j-(lines.length-1)/2)*lh,ln,{"text-anchor":"middle",fill,"font-family":"Space Grotesk","font-size":fs,"font-weight":700,"letter-spacing":-.3,"data-g":"c"+k+"_"+i}); g.appendChild(t); tg.push(t); });
+      tg.forEach(t=>fit(t,maxW,fs,16));
+      const w=Math.max(...tg.map(t=>t.getComputedTextLength()));
+      if(mark){ mk.push(drawMark(g,mark,tx-w/2-30,mid,.8,best&&C.accent)); bw=w+60; bx=x; } else bw=w;
+      bh=lines.length*lh; }
+    const pw=Math.min(colW-14,bw+40), ph=Math.min(rh-14,bh+26);
+    [[pill,0],[ring,6]].forEach(([e,o])=>{ e.setAttribute("x",x-pw/2-o); e.setAttribute("y",mid-ph/2-o); e.setAttribute("width",pw+2*o); e.setAttribute("height",ph+2*o); });
+    if(best){ pill.setAttribute("opacity",1); }
+    return {g,pill,ring,best,mk,x,mid};
+  });
+  return {ry,cells};
+});
+const T0=.04, T1=.94, slot=(T1-T0)/Math.max(1,R);
+frame=t=>{
+  let bandOn=0, bandY=top;
+  RW.forEach((r,k)=>{
+    const u=(t-T0-k*slot)/slot, live=u>=0&&u<1;
+    if(live){ bandOn=Math.min(ease.out(clamp(u/.12)),1-ease.inOut(clamp((u-.86)/.14))); bandY=r.ry; }
+    r.cells.forEach(c=>{
+      const draw=live?ease.out(phase(u,.1,.45)):1;
+      c.mk.forEach(m=>m.p.setAttribute("stroke-dashoffset",(m.L*(1-draw)).toFixed(2)));
+      if(c.best){
+        const p=live?phase(u,.14,.5):1, k=1+.16*Math.sin(Math.PI*p);
+        c.g.setAttribute("transform",`translate(${c.x} ${c.mid}) scale(${k.toFixed(3)}) translate(${-c.x} ${-c.mid})`);
+        const q=live?phase(u,.2,.75):1, s=1+.25*ease.out(q);
+        c.ring.setAttribute("opacity",live&&q<1?(1-q).toFixed(3):0);
+        c.ring.setAttribute("transform",`translate(${c.x} ${c.mid}) scale(${s.toFixed(3)}) translate(${-c.x} ${-c.mid})`);
+      } }); });
+  band.setAttribute("y",bandY); bandBar.setAttribute("y",bandY);
+  band.setAttribute("opacity",(.13*bandOn).toFixed(3)); bandBar.setAttribute("opacity",bandOn.toFixed(3));
+};
+
+}else if(S.bars){
+/* ---------- bars mode ---------- */
+const B=S.bars, vals=(B.values||[]).slice(0,N).map(Number), lower=B.better==="lower";
+const win=vals.reduce((w,v,i)=>(lower?v<vals[w]:v>vals[w])?i:w,0);
+const dec=Math.max(0,...(B.values||[]).map(v=>{ const s=String(v); return s.includes(".")?s.split(".")[1].length:0; }));
+const fmt=v=>v.toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+/* header: metric + which way is better (arrow drawn, not a glyph) */
+const hy=cy0+PAD+34;
+const mt=text(cx0+PAD,hy,B.metric||"",{fill:C.cardInk,"font-family":"Space Grotesk","font-size":46,"font-weight":700,"letter-spacing":-1,"data-g":"metric"});
+svg.appendChild(mt);
+const dirTxt=(lower?"LOWER":"HIGHER")+" IS BETTER";
+const dt=text(cx1-PAD,hy-6,dirTxt,{"text-anchor":"end",fill:C.cardInk,"font-family":"JetBrains Mono","font-size":20,"font-weight":800,"letter-spacing":1.5});
+svg.appendChild(dt); const dw=dt.getComputedTextLength();
+const pill=el("rect",{x:cx1-PAD-dw-58,y:hy-36,width:dw+74,height:44,rx:22,fill:C.track,stroke:C.rule,"stroke-width":2}); svg.insertBefore(pill,dt);
+dt.setAttribute("x",cx1-PAD-10);
+const ax=cx1-PAD-dw-34, ay=hy-14;
+svg.appendChild(el("path",{d:lower?`M${ax} ${ay-12}V${ay+10}M${ax-8} ${ay+2}L${ax} ${ay+10}L${ax+8} ${ay+2}`:`M${ax} ${ay+12}V${ay-10}M${ax-8} ${ay-2}L${ax} ${ay-10}L${ax+8} ${ay-2}`,
+  fill:"none",stroke:C.cardInk,"stroke-width":4,"stroke-linecap":"round","stroke-linejoin":"round"}));
+fit(mt,cx1-PAD-dw-90-(cx0+PAD),46,24);
+const top=hy+40, noteH=B.note?64:10, bot=cy1-PAD-noteH, rh=(bot-top)/Math.max(1,N);
+const NW=S.nameWidth||(N>=4?250:270), bx0=cx0+PAD+NW;
+const BH=Math.min(rh*.46,76), VSz=S.valueSize||44, US=26;
+/* measure every value label (+ badge on the winner) so the longest bar still leaves room */
+const probe=(s,a)=>{ const t=text(0,-99,s,a); svg.appendChild(t); const w=t.getComputedTextLength(); t.remove(); return w; };
+const VA={"font-family":"Space Grotesk","font-size":VSz,"font-weight":700,"letter-spacing":-.8}, UA={"font-family":"Space Grotesk","font-size":US,"font-weight":600};
+const BADGE="BEST", BA={"font-family":"JetBrains Mono","font-size":20,"font-weight":800,"letter-spacing":2};
+const badgeW=probe(BADGE,BA)+66;
+const labW=vals.map((v,i)=>probe(fmt(v),VA)+(B.unit?8+probe(B.unit,UA):0)+(i===win?18+badgeW:0));
+const kx=Math.min(...vals.map((v,i)=>v>0?(cx1-PAD-bx0-labW[i]-22)/v:Infinity));
+const rowsB=opts.map((o,i)=>{
+  const mid=top+rh*(i+.5);
+  if(i) svg.appendChild(el("line",{x1:cx0+PAD,x2:cx1-PAD,y1:top+rh*i,y2:top+rh*i,stroke:C.rule,"stroke-width":2}));
+  const nfs=N>=4?46:54;
+  svg.appendChild(el("rect",{x:cx0+PAD,y:mid-(o.tag?30:20),width:10,height:o.tag?60:40,rx:3,fill:OC[i]}));
+  const nm=text(cx0+PAD+26,o.tag?mid+4:mid+nfs*.36,o.name,{fill:C.cardInk,"font-family":"Anton","font-size":nfs,"data-g":"n"+i}); svg.appendChild(nm); fit(nm,NW-44,nfs,24);
+  if(o.tag){ const tg=text(cx0+PAD+26,mid+36,o.tag,{fill:C.soft,"font-family":"Space Grotesk","font-size":22,"font-weight":600,"data-g":"n"+i}); svg.appendChild(tg); fit(tg,NW-44,22,14); }
+  svg.appendChild(el("rect",{x:bx0,y:mid-BH/2,width:cx1-PAD-bx0,height:BH,rx:BH/2.6,fill:C.track}));
+  const full=Math.max(BH*.6,vals[i]*kx);
+  const bar=el("rect",{x:bx0,y:mid-BH/2,width:full,height:BH,rx:BH/2.6,fill:OC[i]}); svg.appendChild(bar);
+  const vg=el("g",{}); svg.appendChild(vg);
+  const vt=text(0,mid+VSz*.35,fmt(vals[i]),{fill:C.cardInk,...VA,"data-g":"v"+i}); vg.appendChild(vt);
+  const vw=vt.getComputedTextLength();
+  let ut=null; if(B.unit){ ut=text(vw+8,mid+VSz*.35,B.unit,{fill:C.soft,...UA,"data-g":"v"+i}); vg.appendChild(ut); }
+  let badge=null;
+  if(i===win){ badge=el("g",{}); svg.appendChild(badge);
+    badge.appendChild(el("rect",{x:-badgeW/2,y:-27,width:badgeW,height:54,rx:27,fill:C.accent,stroke:C.cardInk,"stroke-width":3}));
+    badge.appendChild(el("path",{d:"M-6 -6l2.6-8.4 2.6 8.4h8.8l-7.1 5.2 2.7 8.4-7-5.2-7 5.2 2.7-8.4-7.1-5.2z",fill:C.onAccent,transform:`translate(${-badgeW/2+26} 2) scale(1.1)`}));
+    badge.appendChild(text(-badgeW/2+47,9,BADGE,{fill:C.onAccent,...BA,"data-g":"v"+i})); }
+  return {mid,bar,full,vg,vt,ut,vw,badge,v:vals[i]};
+});
+if(B.note){ const nt=text(cx0+PAD,cy1-PAD-8,B.note,{fill:C.soft,"font-family":"Space Grotesk","font-size":26,"font-weight":500}); svg.appendChild(nt); fit(nt,CW-2*PAD,26,15); }
+/* schedule: all drop over [.03,.11], regrow in turn over [.13,.66], badge punch [.68,.8], hold */
+const G0=.13, G1=.66, gs=(G1-G0)/Math.max(1,N);
+frame=t=>{
+  rowsB.forEach((r,i)=>{
+    const drop=ease.inOut(phase(t,.03+i*.012,.1+i*.012));
+    const grow=ease.out(phase(t,G0+i*gs,G0+(i+1)*gs-.02));
+    const g=t<.03?1:(t<G0+i*gs?1-drop:grow);
+    const w=Math.max(0,r.full*g);
+    r.bar.setAttribute("width",w.toFixed(1)); r.bar.setAttribute("opacity",w<2?0:1);
+    const cur=r.v*g;
+    r.vt.textContent=fmt(cur);
+    const vw=r.vt.getComputedTextLength(); if(r.ut) r.ut.setAttribute("x",(vw+8).toFixed(1));
+    r.vg.setAttribute("transform",`translate(${(bx0+Math.max(w,0)+18).toFixed(1)} 0)`);
+    if(r.badge){
+      const vis=t<.03||t>=.68?1:0, p=phase(t,.68,.8), k=t>=.68?(p<1?ease.back(clamp(p*1.4))*(1+.12*Math.sin(Math.PI*p)):1):1;
+      const utw=r.ut?r.ut.getComputedTextLength()+8:0;
+      const bxc=bx0+r.full+18+r.vw+utw+18+badgeW/2;
+      r.badge.setAttribute("opacity",t<.03?1:(t<.68?1-phase(t,.03,.06):1));
+      r.badge.setAttribute("transform",`translate(${bxc.toFixed(1)} ${r.mid}) scale(${(vis?k:1).toFixed(3)}) rotate(${t>=.68&&p<1?(-6*Math.sin(TAU*p)).toFixed(2):0})`); }
+  });
+};
+}
+
+if(S.footnote) svg.appendChild(text(M,H-44,S.footnote,{fill:C.head,"font-family":"Instrument Serif","font-style":"italic","font-size":34}));
+CS.brand(svg,S,{fill:C.head,bar:C.accent},W,H-44);
+
+window.setFrame=(f,total)=>frame(f/total);
+});
+</script>

@@ -3,13 +3,20 @@
 const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer");
+const palette = require("./palette");
 
 const [, , specPath, outBase, framesArg] = process.argv;
 const FRAMES = parseInt(framesArg || "60", 10);
 let W = 1200, H = 1200;
 
 (async () => {
-  const spec = JSON.parse(fs.readFileSync(specPath, "utf8"));
+  // a palette.json (see palette.js) fills in accent, ink, ground and brand the spec leaves out
+  const { spec, file: paletteFile, warnings } = palette.apply(JSON.parse(fs.readFileSync(specPath, "utf8")), specPath);
+  if (paletteFile) {
+    const rel = path.relative(process.cwd(), paletteFile);
+    console.log("palette: " + (rel.startsWith("..") ? paletteFile : rel));
+    (warnings || []).forEach(w => console.log("  " + w));
+  }
   W = spec.width || W; H = spec.height || H;
   const frameDir = outBase + ".frames";
   fs.rmSync(frameDir, { recursive: true, force: true });

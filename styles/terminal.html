@@ -11,7 +11,7 @@
 const {el,text,fit,phase,ease,clamp,TAU,win}=CS, S=window.SPEC;
 CS.run(()=>{
 const W=S.width||1200, H=S.height||1200, M=44;
-const C={bg:"#0B0E14",win:"#131822",chrome:"#1B2130",line:"#232B3B",ink:"#E6EDF3",muted:"#7D8590",
+const C={bg:S.ground||"#0B0E14",win:"#131822",chrome:"#1B2130",line:"#232B3B",ink:S.ink||"#E6EDF3",muted:"#7D8590",
   kw:"#FF7B72",fn:"#D2A8FF",str:"#A5D6FF",num:"#79C0FF",com:"#6E7681",op:"#FFA657",
   accent:S.accent||"#3FB950",amber:"#F0B429",green:"#3FB950",red:"#F85149",blue:"#58A6FF"};
 const {svg,defs}=CS.setup(W,H,C.bg);

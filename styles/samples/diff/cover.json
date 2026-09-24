@@ -1,0 +1,21 @@
+{
+  "_": "Illustrative example, not data.",
+  "style": "diff",
+  "brand": "rishabh0111.github.io",
+  "kicker": "BUG FIX · RACE CONDITION",
+  "title": "Two agents, one ticket,",
+  "titleAccent": "and an if that lied",
+  "file": "tickets/claim.py",
+  "lines": [
+    "@@ -41,4 +41,6 @@ def claim(ticket, agent):",
+    "-    t = db.get(ticket)",
+    "-    if t.owner is None:",
+    "-        db.save(t, owner=agent)",
+    "+    n = db.execute(",
+    "+        \"update tickets set owner = %s\"",
+    "+        \" where id = %s and owner is null\",",
+    "+        agent, ticket)",
+    "+    return n == 1"
+  ],
+  "footnote": "It passed every test we had."
+}

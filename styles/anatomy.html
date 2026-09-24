@@ -13,7 +13,7 @@
 const {el,text,fit,wrap,phase,ease,clamp,TAU}=CS, S=window.SPEC;
 CS.run(()=>{
 const W=S.width||1200, H=S.height||1200, M=56, SH=8, BW=4;
-const C={bg:S.ground||"#FFF1DA",ink:"#111111",paper:"#FFFFFF",
+const C={bg:S.ground||"#FFF1DA",ink:S.ink||"#111111",paper:"#FFFFFF",
   yellow:"#FFC900",pink:"#FF90E8",cyan:"#5CE1E6",lilac:"#B9A6FF",green:"#7CE38B",orange:"#FF8A3D",grey:"#D9D2C3"};
 const col=c=>C[c]||c;
 const {svg,defs}=CS.setup(W,H,C.bg);
@@ -31,7 +31,7 @@ if(S.kicker){ const g=el("g",{transform:`rotate(-2.5 ${M} ${M+20})`}); svg.appen
 const TS=S.titleSize||66;
 const t1=text(M,y+TS,S.title,{fill:C.ink,"font-family":"Space Grotesk","font-weight":700,"font-size":TS,"letter-spacing":-1.5,"data-g":"title"}); svg.appendChild(t1); fit(t1,W-2*M,TS,36);
 const t2=text(M+14,y+TS*2.18,S.titleAccent||"",{fill:C.ink,"font-family":"Space Grotesk","font-weight":700,"font-size":TS,"letter-spacing":-1.5,"data-g":"title"}); svg.appendChild(t2); fit(t2,W-2*M-28,TS,36);
-const hb=t2.getBBox(); svg.insertBefore(el("rect",{x:hb.x-14,y:hb.y+hb.height*.18,width:hb.width+28,height:hb.height*.78,fill:col(S.titleColor||"yellow")}),t2);
+const hb=t2.getBBox(); svg.insertBefore(el("rect",{x:hb.x-14,y:hb.y+hb.height*.18,width:hb.width+28,height:hb.height*.78,fill:col(S.titleColor||S.accent||"yellow")}),t2);
 y+=TS*2.18+84;
 
 /* value box: what the whole thing looks like assembled */

@@ -41,6 +41,10 @@ const TH=LIGHT?{
   pill:{green:"#16A34A",violet:"#7C3AED",amber:"#D97706",red:"#DC2626",
         cyan:"#0891B2",indigo:"#4F46E5",pink:"#DB2777",teal:"#0D9488",blue:"#2563EB",grey:"#475569"},
 };
+/* palette overrides (spec or palette.json): ground, ink, accent = title accent + bars */
+if(S.ground) TH.bg=S.ground;
+if(S.ink){ TH.ink=S.ink; TH.text=S.ink; }
+if(S.accent){ TH.accent=S.accent; TH.bar=S.accent; }
 /* icon palettes: main fill, light highlight, dark outline, accent sparkle */
 const PAL={
   cyan:  {main:"#22B8CF",light:"#C7F1F8"}, green: {main:"#22C55E",light:"#C6F6D5"},

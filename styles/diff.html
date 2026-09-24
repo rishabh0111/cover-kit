@@ -1,0 +1,205 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>diff cover</title>
+<body>
+<script src="base.js"></script>
+<script>
+/* DIFF — one code change, before → after: a refactor, a bug fix, a config
+   change. A light, review-tool look (pale ground, white window) so it never
+   reads as `terminal` at thumbnail size.
+   Keys:
+     title, titleAccent   two stacked lines; the second in the accent colour
+     kicker               optional small caps line above the title
+     file                 filename in the window chrome (default "change.diff")
+     lines[]              each starts with "-" (removed), "+" (added) or " "
+                          (context); a line starting "@@" is a hunk header. A
+                          header like "@@ -12,4 +12,6 @@ fn()" resets the
+                          old/new line numbers; otherwise they run from `start`
+     start                first line number (number, or [old, new]; default 1)
+     caption              optional sans line under the window
+     footnote             optional serif italic line bottom-left
+     brand                your site or handle (bottom-right mark)
+     codeSize             starting code size (default 40); shrinks once, for
+                          every line alike, until the longest line fits;
+                          indentation shared by every line is stripped
+     keywords             optional space-separated keyword list for the tint
+     ground, ink, accent  palette overrides (page ground, title/caption ink,
+                          title accent + caret + brand bar)
+   Motion: the removed lines are struck through one by one, then dim; the
+   added lines wipe in (green tint sweeps left→right, the text types in
+   behind it) one by one; hold. Frame 0 = the finished diff. ≤ 12 diff lines. */
+const {el,text,fit,phase,ease,clamp}=CS, S=window.SPEC;
+CS.run(()=>{
+const W=S.width||1200, H=S.height||1200, M=48;
+const C={bg:S.ground||"#EEF1F5",ink:S.ink||"#1F2328",accent:S.accent||"#0969DA",
+  win:"#FFFFFF",border:"#D0D7DE",chrome:"#F6F8FA",code:"#1F2328",muted:"#6E7781",
+  delRow:"#FFEBE9",delGut:"#FFD7D5",delInk:"#CF222E",addRow:"#E6FFEC",addGut:"#CCFFD8",addInk:"#1A7F37",
+  hunkRow:"#DDF4FF",hunkInk:"#57606A",
+  kw:"#CF222E",fn:"#8250DF",str:"#0A3069",num:"#0550AE",com:"#6E7781",op:"#953800"};
+const {svg,defs}=CS.setup(W,H,C.bg);
+defs.innerHTML=`<filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+  <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#1F2328" flood-opacity=".12"/></filter>`;
+
+/* kicker + two-line title */
+let y=M;
+if(S.kicker){ y+=24; svg.appendChild(text(M,y,S.kicker,{fill:C.ink,"fill-opacity":.62,"font-family":"JetBrains Mono","font-size":21,"font-weight":800,"letter-spacing":3})); y+=16; }
+const TS=S.titleSize||68;
+[S.title,S.titleAccent].filter(Boolean).forEach((ln,i)=>{ y+=TS*1.06;
+  const t=text(M,y,ln,{fill:i?C.accent:C.ink,"font-family":"Space Grotesk","font-weight":700,"letter-spacing":-1.2,"data-g":"title"});
+  svg.appendChild(t); fit(t,W-2*M,TS,36); });
+
+/* parse the diff: kind, text, old/new numbers */
+let st=S.start!=null?[].concat(S.start):[1]; let on=+st[0], nn=+(st[1]!=null?st[1]:st[0]);
+const rows=(S.lines||[]).map(raw=>{
+  const s=String(raw);
+  if(s.startsWith("@@")){ const m=s.match(/-(\d+)(?:,\d+)?\s+\+(\d+)/); if(m){on=+m[1];nn=+m[2];}
+    return {k:"hunk",s}; }
+  const k=s[0]==="-"?"del":s[0]==="+"?"add":"ctx", body=/^[-+ ]/.test(s)?s.slice(1):s;
+  const r={k,s:body,o:k!=="add"?on:null,n:k!=="del"?nn:null};
+  if(k!=="add")on++; if(k!=="del")nn++; return r; });
+/* strip the indentation every code line shares, so the width goes to the code */
+const ind=Math.min(...rows.filter(r=>r.k!=="hunk"&&r.s.trim()).map(r=>r.s.match(/^ */)[0].length));
+if(isFinite(ind)&&ind>0) rows.forEach(r=>{ if(r.k!=="hunk") r.s=r.s.slice(Math.min(ind,r.s.match(/^ */)[0].length)); });
+const nDel=rows.filter(r=>r.k==="del").length, nAdd=rows.filter(r=>r.k==="add").length;
+
+/* one code size for every line: shrink until the longest line fits the window
+   width and all rows fit the height left between title and footer */
+const wx=M, ww=W-2*M, HDR=62, PADV=14;
+const botReserve=(S.footnote||S.brand?96:56)+(S.caption?58:0);
+const wyMin=y+46, availH=H-botReserve-wyMin;
+const probe=text(0,-99,"MMMMMMMMMM",{"font-family":"JetBrains Mono","font-size":100}); svg.appendChild(probe);
+const cw100=probe.getComputedTextLength()/10; probe.remove();
+const maxDigits=Math.max(2,...rows.map(r=>String(Math.max(r.o||0,r.n||0)).length));
+const maxChars=Math.max(1,...rows.filter(r=>r.k!=="hunk").map(r=>r.s.replace(/\s+$/,"").length));
+let FS=S.codeSize||40, geo;
+for(;;){
+  const cw=cw100*FS/100, NS=FS*.62, ncw=cw100*NS/100;
+  const numW=maxDigits*ncw+28, gutW=numW*2, markW=cw+38, codeX=wx+gutW+markW, LH=Math.round(FS*1.7);
+  const needW=maxChars*cw+28, fitsW=codeX+needW<=wx+ww, needH=HDR+2*PADV+rows.length*LH;
+  geo={cw,NS,numW,gutW,markW,codeX,LH,needH};
+  if((fitsW&&needH<=availH)||FS<=16) break; FS--;
+}
+const {cw,NS,numW,gutW,markW,codeX,LH}=geo, wh=geo.needH;
+/* centre the window in the room it has, leaning up */
+const wy=Math.round(wyMin+Math.max(0,(availH-wh)*.4));
+
+/* window: white card, thin border, soft shadow, grey chrome */
+const clipW=el("clipPath",{id:"win"}); clipW.appendChild(el("rect",{x:wx,y:wy,width:ww,height:wh,rx:16})); defs.appendChild(clipW);
+svg.appendChild(el("rect",{x:wx,y:wy,width:ww,height:wh,rx:16,fill:C.win,filter:"url(#shadow)"}));
+const body=el("g",{"clip-path":"url(#win)"}); svg.appendChild(body);
+body.appendChild(el("rect",{x:wx,y:wy,width:ww,height:HDR,fill:C.chrome}));
+body.appendChild(el("line",{x1:wx,x2:wx+ww,y1:wy+HDR,y2:wy+HDR,stroke:C.border,"stroke-width":1.5}));
+/* file icon + name */
+const fic=el("g",{transform:`translate(${wx+26} ${wy+HDR/2})`});
+fic.innerHTML=`<path d="M-8 -11h10l6 6v16h-16z" fill="none" stroke="${C.muted}" stroke-width="2.2" stroke-linejoin="round"/><path d="M2 -11v6h6" fill="none" stroke="${C.muted}" stroke-width="2.2" stroke-linejoin="round"/>`;
+svg.appendChild(fic);
+/* stat pill: +N −M, right of the chrome; counts follow the motion */
+const PF=23, pcw=cw100*PF/100, padP=16;
+const plusW=(String(nAdd).length+1)*pcw, minusW=(String(nDel).length+1)*pcw, pillW=plusW+minusW+padP*2+14;
+const px=wx+ww-22-pillW, pyM=wy+HDR/2;
+svg.appendChild(el("rect",{x:px,y:pyM-17,width:pillW,height:34,rx:17,fill:C.win,stroke:C.border,"stroke-width":1.5}));
+const plusT=text(px+padP,pyM+8,"+"+nAdd,{fill:C.addInk,"font-family":"JetBrains Mono","font-size":PF,"font-weight":800,"data-g":"stat"});
+const minusT=text(px+padP+plusW+14,pyM+8,"−"+nDel,{fill:C.delInk,"font-family":"JetBrains Mono","font-size":PF,"font-weight":800,"data-g":"stat"});
+svg.appendChild(plusT); svg.appendChild(minusT);
+const fileT=text(wx+48,pyM+7,S.file||"change.diff",{fill:C.code,"font-family":"JetBrains Mono","font-size":23,"font-weight":700});
+svg.appendChild(fileT); fit(fileT,px-24-(wx+48),23,14);
+/* gutter divider */
+body.appendChild(el("line",{x1:wx+gutW,x2:wx+gutW,y1:wy+HDR,y2:wy+wh,stroke:C.border,"stroke-width":1}));
+
+/* tiny highlighter tuned for a light ground: sql/ts/py/go keywords, strings, numbers, comments */
+const KW=new Set((S.keywords||"select from where and or not null is for update skip locked limit order by insert into values on conflict do nothing returning begin commit rollback set create table index primary key references join left inner group having as with case when then else end true false const let var await async return function if new import export class def in none true false elif try except finally raise while break continue func go defer nil").split(" "));
+const tokenise=s=>{ const out=[]; const re=/(--.*$|\/\/.*$|#.*$)|('[^']*'|"[^"]*"|`[^`]*`)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][\w]*)(?=\s*\()|([A-Za-z_][\w]*)|(\s+)|([^\sA-Za-z_\d'"`]+)/g; let m;
+  while((m=re.exec(s))){ const [w,com,str,num,fn,id,sp,op]=m;
+    out.push([w,com?C.com:str?C.str:num?C.num:fn?C.fn:id?(KW.has(id.toLowerCase())?C.kw:C.code):sp?C.code:C.op]); } return out; };
+
+/* rows */
+const top=wy+HDR+PADV;
+const R=rows.map((r,i)=>{
+  const ry=top+i*LH, base=ry+LH/2+FS*.36, g="ln"+i;
+  const grp=el("g",{}); body.appendChild(grp);
+  const out={...r,ry,base,grp};
+  if(r.k==="hunk"){
+    grp.appendChild(el("rect",{x:wx,y:ry,width:ww,height:LH,fill:C.hunkRow}));
+    const t=text(codeX-markW+8,base,r.s,{fill:C.hunkInk,"font-family":"JetBrains Mono","font-size":FS*.8,"data-g":g});
+    grp.appendChild(t); fit(t,wx+ww-24-(codeX-markW+8),FS*.8,12);
+    return out; }
+  const del=r.k==="del", add=r.k==="add";
+  if(del||add){
+    grp.appendChild(el("rect",{x:wx,y:ry,width:ww,height:LH,fill:del?C.delRow:C.addRow}));
+    grp.appendChild(el("rect",{x:wx,y:ry,width:gutW,height:LH,fill:del?C.delGut:C.addGut})); }
+  const nAttrs={"text-anchor":"end",fill:C.muted,"font-family":"JetBrains Mono","font-size":NS,"data-g":g};
+  if(r.o!=null) grp.appendChild(text(wx+numW-14,base,String(r.o),nAttrs));
+  if(r.n!=null) grp.appendChild(text(wx+gutW-14,base,String(r.n),nAttrs));
+  if(del||add) grp.appendChild(text(wx+gutW+14,base,del?"−":"+",{fill:del?C.delInk:C.addInk,"font-family":"JetBrains Mono","font-size":FS,"font-weight":700,"data-g":g}));
+  const t=el("text",{x:codeX,y:base,"font-family":"JetBrains Mono","font-size":FS,"font-weight":500,"data-g":g});
+  tokenise(r.s).forEach(([w,c])=>{ const sp=el("tspan",{fill:c}); sp.textContent=w; t.appendChild(sp); });
+  out.t=t;
+  if(del){
+    grp.appendChild(t);
+    const lead=(r.s.match(/^\s*/)[0].length)*cw, len=r.s.replace(/\s+$/,"").length*cw;
+    out.sx=codeX+lead-6; out.sw=len-lead+12;
+    out.strike=el("rect",{x:out.sx,y:base-FS*.34,width:out.sw,height:Math.max(3,FS*.1),rx:1.5,fill:C.delInk}); grp.appendChild(out.strike);
+  }else if(add){
+    /* the row's tint + gutter sweep in behind one clip; the code types in behind a second, snapped to whole characters */
+    const cpR=el("clipPath",{id:"ar"+i}); out.cr=el("rect",{x:wx,y:ry,width:ww,height:LH}); cpR.appendChild(out.cr); defs.appendChild(cpR);
+    grp.setAttribute("clip-path",`url(#ar${i})`);
+    const cpT=el("clipPath",{id:"at"+i}); out.ct=el("rect",{x:codeX-2,y:ry,width:ww,height:LH}); cpT.appendChild(out.ct); defs.appendChild(cpT);
+    const tg=el("g",{"clip-path":`url(#at${i})`}); tg.appendChild(t); body.appendChild(tg); out.tg=tg;
+    out.len=r.s.replace(/\s+$/,"").length;
+  }else grp.appendChild(t);
+  return out;
+});
+/* typing caret, above everything in the body */
+const caret=el("rect",{width:Math.max(3,FS*.12),height:FS*1.05,fill:C.accent,opacity:0}); body.appendChild(caret);
+
+/* footer */
+if(S.caption){ const cy=wy+wh+50;
+  const c=text(M,cy,S.caption,{fill:C.ink,"font-family":"Space Grotesk","font-size":28,"font-weight":600}); svg.appendChild(c); fit(c,W-2*M,28,18); }
+if(S.footnote){ const f=text(M,H-44,S.footnote,{fill:C.ink,"font-family":"Instrument Serif","font-style":"italic","font-size":34}); svg.appendChild(f);
+  fit(f,W-2*M-(S.brand?330:0),34,22); }
+CS.brand(svg,S,{fill:C.ink,bar:C.accent,font:"JetBrains Mono"},W,H-44);
+
+/* schedule (t in [0,1)):
+   0–.04 hold finished · .04–.11 rewind (strikes retract, dim lifts, added rows fade)
+   .14–.36 strike each removed line · .36–.42 removed rows dim
+   .45–.82 each added row wipes + types in · .82–1 hold                    */
+const dels=R.filter(r=>r.k==="del"), adds=R.filter(r=>r.k==="add");
+const S0=.14, S1=.36, D0=.36, D1=.42, A0=.45, A1=.82, RW0=.04, RW1=.11;
+const sSlot=(S1-S0)/Math.max(1,dels.length), aSlot=(A1-A0)/Math.max(1,adds.length);
+window.setFrame=(f,total)=>{
+  const t=f/total, rew=ease.inOut(phase(t,RW0,RW1));
+  const inCycle=t>=RW0; /* before RW0 the finished state holds */
+  let struck=0, shown=0, cur=null;
+  dels.forEach((r,k)=>{
+    let w;
+    if(!inCycle) w=1;
+    else if(t<RW1) w=1-rew;
+    else w=ease.inOut(phase(t,S0+k*sSlot,S0+(k+.85)*sSlot));
+    r.strike.setAttribute("width",(r.sw*w).toFixed(1));
+    r.strike.setAttribute("opacity",w>0?1:0);
+    if(w>=1) struck++;
+    const dim=!inCycle?1:t<RW1?1-rew:ease.out(phase(t,D0,D1));
+    r.t.setAttribute("opacity",(1-.4*dim).toFixed(3));
+  });
+  adds.forEach((r,k)=>{
+    let u;
+    if(!inCycle) u=1; else if(t<RW1) u=1; else u=phase(t,A0+k*aSlot,A0+(k+.9)*aSlot);
+    const fade=inCycle&&t<RW1?1-rew:1;
+    const hide=inCycle&&t>=RW1&&u<=0;
+    r.grp.setAttribute("opacity",hide?0:fade.toFixed(3)); r.tg.setAttribute("opacity",hide?0:fade.toFixed(3));
+    const sweep=ease.inOut(u), front=wx+ww*sweep;
+    r.cr.setAttribute("width",(ww*sweep).toFixed(1));
+    /* text trails the sweep by a few characters, whole characters only */
+    const typed=u>=1?r.len:clamp(Math.floor((front-codeX-3*cw)/cw),0,r.len);
+    r.ct.setAttribute("width",u>=1?ww:(typed*cw+2).toFixed(1));
+    if(u>0&&u<1){ cur={x:codeX+typed*cw+1,y:r.base-FS*.82}; }
+    if(u>=1&&!hide) shown++;
+  });
+  if(!inCycle||t>=A1){ struck=dels.length; shown=adds.length; }
+  if(inCycle&&t<RW1){ struck=rew<.5?dels.length:0; shown=rew<.5?adds.length:0; }
+  plusT.textContent="+"+shown; minusT.textContent="−"+struck;
+  caret.setAttribute("opacity",cur?1:0);
+  if(cur){ caret.setAttribute("x",cur.x.toFixed(1)); caret.setAttribute("y",cur.y.toFixed(1)); }
+};
+});
+</script>

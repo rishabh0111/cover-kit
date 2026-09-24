@@ -11,7 +11,7 @@
 const {el,text,fit,phase,ease,clamp,TAU}=CS, S=window.SPEC;
 CS.run(()=>{
 const W=S.width||1200, H=S.height||1200, M=60;
-const C={bg:S.ground||"#F4EFE6",ink:"#161412",muted:"#6F6A62",grid:"#DAD3C6",hot:S.accent||"#D7301F",cool:"#1F4E79",zone:"#D7301F"};
+const C={bg:S.ground||"#F4EFE6",ink:S.ink||"#161412",muted:"#6F6A62",grid:"#DAD3C6",hot:S.accent||"#D7301F",cool:"#1F4E79",zone:"#D7301F"};
 const {svg,defs}=CS.setup(W,H,C.bg);
 const G=S.chart;
 

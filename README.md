@@ -3,12 +3,12 @@
 Animated GIF covers for technical posts, rendered from a JSON spec.
 
 Write a `cover.json` describing one idea from your post — a query, a number, a
-race, an ID taken apart, a list, a timeline — pick one of eleven styles, and
-get a 1200×1200, 7-second looping GIF (plus an optional PNG still). Built for
-LinkedIn image posts, but the output is a plain GIF, so it works anywhere a
-square animated image does.
+race, an ID taken apart, a list, a diff, a benchmark — pick one of thirteen
+styles, and get a 1200×1200, 7-second looping GIF (plus an optional PNG
+still), in your brand's colours. Built for LinkedIn image posts, but the output
+is a plain GIF, so it works anywhere a square animated image does.
 
-![The eleven styles, frame 0 of each sample](docs/styles.jpg)
+![The thirteen styles, frame 0 of each sample](docs/styles.jpg)
 
 Open [`styles/gallery.html`](styles/gallery.html) in a browser to see every
 style animating.
@@ -18,7 +18,7 @@ style animating.
 A moving image stands out in a feed of static ones, and a cover that shows
 *one comprehensible idea* earns the click better than a headline or a full
 architecture diagram. Covers that all share one template teach followers to
-skip them, so the kit has eleven styles with different grounds, and a linter
+skip them, so the kit has thirteen styles with different grounds, and a linter
 that stops you posting the same shape twice in a row.
 
 ## Requirements
@@ -66,9 +66,11 @@ path); keep your specs in this repo or anywhere else.
 |---|---|---|---|
 | `flow` | white | has a mechanism with several moving parts | dense by design |
 | `terminal` | near-black | turns on one query, config, snippet or printed output | ≤ 10 code lines |
+| `diff` | pale grey, white window | is one code change: a refactor, a bug fix, a config change | ≤ 12 diff lines |
 | `bignumber` | electric blue | is one number: a measurement, an estimate, a before → after | 1 number + ≤ 6 words |
 | `chart` | cream paper | is a trade-off curve, sweep or operating point | title + 2 axis labels |
 | `versus` | split, slanted | compares two options, neither wrong | ≤ 5 rows × ≤ 5 words |
+| `compare` | teal, white card | compares 3–4 options, or benchmarks / ranks them | ≤ 5 rows × ≤ 4 words, or 1 bar per option |
 | `sketch` | whiteboard | is a mental model, or redraws a picture people learned wrong | ≤ 6 labels |
 | `poster` | yellow | states an opinion, rule or myth-bust | ≤ 8 words |
 | `sequence` | navy blueprint | depends on order: requests, retries, races, handshakes | ≤ 7 messages |
@@ -103,6 +105,29 @@ there, then starts moving within half a second.
 For a second opinion, [`JUDGE.md`](JUDGE.md) is a review prompt you can give
 any vision-capable AI agent (or follow yourself as a checklist).
 [`STYLE.md`](STYLE.md) is the measured rubric behind the `flow` style.
+
+## Your colours
+
+Put a `palette.json` in your covers folder (start from
+[`palette.example.json`](palette.example.json)) and every cover under it picks
+up your brand:
+
+```json
+{ "brand": "yoursite.dev", "accent": "#FF5A1F",
+  "styles": { "poster": { "ground": "#FFE14D" } } }
+```
+
+- `accent` is each style's highlight: the title's second line, the red pen in
+  `sketch`, the focus bar in `terminal`, the marker on a `chart`. `ink` is the
+  text colour, `brand` the mark, `ground` the background.
+- Each style keeps its own ground unless you set one. The different grounds
+  are what keep a feed from looking repetitive, so override them sparingly.
+- One colour can't suit every ground: a top-level accent under 3:1 contrast
+  (ink under 4.5:1) is skipped for that style with a warning. Put a colour
+  under `styles.<style>` to use it anyway.
+- Precedence: the spec's own keys, then `styles.<style>`, then the top level.
+  `PALETTE=path/to/palette.json` points at one elsewhere. `versus` takes its
+  two sides' colours from `left` / `right` in the spec.
 
 ## Rotation
 
