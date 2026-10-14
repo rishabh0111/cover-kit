@@ -212,3 +212,6 @@ line to `build-brand-icons.js` and run `node build-brand-icons.js` after
 The `flow` style's structure was studied from ByteByteGo's system infographics
 ([`STYLE.md`](STYLE.md) records what was measured); the palette, icons and code
 are original. This project isn't affiliated with ByteByteGo or LinkedIn.
+
+The image inside the same posts: [meme-kit](https://github.com/rishabh0111/meme-kit)
+puts your text on a classic meme template, from a JSON spec in the same way.
