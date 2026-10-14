@@ -27,7 +27,7 @@ thumbnail size before anyone reads a word. The brand mark stays constant.
 | `anatomy` | `styles/anatomy.html` | cream, neo-brutalist | takes one artefact apart: an ID, a token, a URL | ≤ 4 parts |
 | `list` | `styles/list.html` | coral | is a list: "5 lessons", "7 mistakes", a checklist | ≤ 6 items × ≤ 6 words |
 | `timeline` | `styles/timeline.html` | aubergine | happens over dates: an evolution, a migration, an incident | ≤ 6 events |
-| `stack` | `styles/stack.html` | midnight, glowing tiles | is a flagship project, where the stack itself is the claim | ≤ 4 lanes × ≤ 4 logos, ≤ 4 stats |
+| `stack` | `styles/stack.html` | pine, CI board | is a flagship project, where the stack itself is the claim | ≤ 4 lanes × ≤ 4 logos, ≤ 4 stats |
 
 `flow` is documented in `README.md` and measured in `STYLE.md`. Each file in
 `styles/` documents its own spec keys in its header comment, and
@@ -111,10 +111,10 @@ composition, which is what LinkedIn (and most feeds) show if a GIF freezes.
   ink; marks punch as their row lights, and a `redact` bar shimmers.
 - **timeline** — the spine drains and refills to `now`, each dot popping as
   the line reaches it; the `now` dot keeps a ring pulsing.
-- **stack** — a light packet snakes through every tile in lane order along a
-  marching dashed path; each tile flares in its own brand colour as the packet
-  passes and its lane label lights, and a diagonal light band crosses the
-  grid once per loop.
+- **stack** — one CI run: the jobs reset to queued (dimmed), then run in
+  order, each with an accent outline and spinner, and pass with a popping
+  check; a stage's node checks off with its last job and the spine fills to
+  the next. It ends all green, which is frame 0.
 
 ## Shared by every style
 

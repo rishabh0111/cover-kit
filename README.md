@@ -77,7 +77,7 @@ path); keep your specs in this repo or anywhere else.
 | `anatomy` | cream, neo-brutalist | takes one artefact apart: an ID, a token, a URL | ≤ 4 parts |
 | `list` | coral | is a list: "5 lessons", "7 mistakes", a checklist | ≤ 6 items × ≤ 6 words |
 | `timeline` | aubergine | happens over dates: an evolution, a migration, an incident | ≤ 6 events |
-| `stack` | midnight, glowing tiles | showcases a whole project, where the stack itself is the claim | ≤ 4 lanes × ≤ 4 logos, ≤ 4 stats |
+| `stack` | pine, CI board | showcases a whole project, where the stack itself is the claim | ≤ 4 lanes × ≤ 4 logos, ≤ 4 stats |
 
 The spec's `"style"` picks the template. Each template in `styles/` documents
 its own keys in its header comment, and `styles/samples/<style>/cover.json` is a
