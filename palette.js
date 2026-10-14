@@ -19,7 +19,7 @@ const pick = o => Object.fromEntries(KEYS.filter(k => o && o[k] != null).map(k =
 /* each style's own ground, for the contrast guard */
 const GROUND = { flow: "#FFFFFF", terminal: "#0B0E14", bignumber: "#1D3BFF", chart: "#F4EFE6", sketch: "#FBFAF5",
                  poster: "#FFD400", sequence: "#0A1A33", anatomy: "#FFF1DA", list: "#FF6A4D", timeline: "#24102F", diff: "#EEF1F5",
-                 compare: "#FFFFFF" /* its accent sits on the white card, not the teal ground */ };
+                 stack: "#070A14", compare: "#FFFFFF" /* its accent sits on the white card, not the teal ground */ };
 const MIN = { accent: 3, ink: 4.5 };
 
 const lum = hex => { const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || "").trim()); if (!m) return null;

@@ -1,7 +1,7 @@
 {
   "name": "cover-kit",
   "version": "1.0.0",
-  "description": "Animated GIF covers for technical posts, rendered from a JSON spec: thirteen styles, a brand palette, a headless-Chrome frame renderer, an overlap check and a rotation linter.",
+  "description": "Animated GIF covers for technical posts, rendered from a JSON spec: fourteen styles, a brand palette, a headless-Chrome frame renderer, an overlap check and a rotation linter.",
   "main": "render.js",
   "scripts": {
     "build": "./build-covers.sh",
@@ -26,5 +26,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/rishabh0111/cover-kit.git"
+  },
+  "devDependencies": {
+    "devicon": "^2.17.0",
+    "simple-icons": "^16.32.0"
   }
 }

@@ -13,7 +13,7 @@ const palette = require("./palette");
 
 const TONE = { flow: "light", terminal: "dark", diff: "light", bignumber: "colour", chart: "light", versus: "split",
                sketch: "light", poster: "colour", sequence: "dark", anatomy: "light",
-               list: "colour", timeline: "dark", compare: "colour" };
+               list: "colour", timeline: "dark", compare: "colour", stack: "dark" };
 const args = process.argv.slice(2);
 const flag = (name, withValue) => {
   const i = args.indexOf(name); if (i < 0) return undefined;

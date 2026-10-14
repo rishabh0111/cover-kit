@@ -1,0 +1,97 @@
+{
+  "style": "stack",
+  "brand": "rishabh0111.github.io",
+  "kicker": "DEVOPS · BUILT END TO END",
+  "title": "A production-grade platform,",
+  "titleAccent": "proven on real AWS",
+  "lanes": [
+    {
+      "label": "BUILD",
+      "tiles": [
+        {
+          "brand": "go"
+        },
+        {
+          "brand": "graphql"
+        },
+        {
+          "brand": "docker"
+        },
+        {
+          "brand": "githubactions"
+        }
+      ]
+    },
+    {
+      "label": "SHIP",
+      "tiles": [
+        {
+          "brand": "terraform"
+        },
+        {
+          "brand": "argocd"
+        },
+        {
+          "brand": "kubernetes"
+        },
+        {
+          "brand": "helm"
+        }
+      ]
+    },
+    {
+      "label": "RUN",
+      "tiles": [
+        {
+          "brand": "aws",
+          "name": "Amazon EKS"
+        },
+        {
+          "brand": "dynamodb"
+        },
+        {
+          "brand": "k3s"
+        },
+        {
+          "brand": "traefik"
+        }
+      ]
+    },
+    {
+      "label": "PROVE",
+      "tiles": [
+        {
+          "brand": "prometheus"
+        },
+        {
+          "brand": "grafana"
+        },
+        {
+          "brand": "k6"
+        },
+        {
+          "brand": "trivy"
+        }
+      ]
+    }
+  ],
+  "stats": [
+    {
+      "value": "13",
+      "label": "ALERTS, ALL PROVEN"
+    },
+    {
+      "value": "5",
+      "label": "CHAOS EXPERIMENTS"
+    },
+    {
+      "value": "12H",
+      "label": "ON REAL EKS"
+    },
+    {
+      "value": "$3.32",
+      "label": "TOTAL AWS BILL"
+    }
+  ],
+  "footnote": "Built end to end. Broken on purpose."
+}

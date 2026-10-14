@@ -1,0 +1,134 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>stack cover</title>
+<body>
+<script src="base.js"></script>
+<script src="brand-icons.js"></script>
+<script>
+/* STACK — a project showcase: the real logos of everything it is built with, as
+   lanes that read like the pipeline (build → ship → run → prove), over a stat
+   strip. `lanes[]` = { label, tiles: [{ brand, name? }] } with brand a key of
+   brand-icons.js; ≤ 4 lanes × ≤ 4 tiles. `stats[]` = { value, label }, ≤ 4.
+   Motion: a light packet snakes through every tile in order along a marching
+   dashed path; each tile flares in its own brand colour as the packet passes,
+   and its lane label lights with it. Text never moves; frame 0 is complete.
+   Use for a flagship project post, where the stack itself is the claim.     */
+const {el,text,fit,clamp,TAU}=CS, S=window.SPEC, B=window.BRANDS;
+CS.run(()=>{
+const W=S.width||1200, H=S.height||1200, M=64;
+const C={bg:S.ground||"#070A14",ink:"#FFFFFF",soft:"#A9B4D0",tile:"#F7F8FC",tileInk:"#1C2233",
+         a1:S.accent1||"#7DF9FF",a2:S.accent2||"#B388FF",a3:S.accent3||"#FF6AD5"};
+const {svg,defs}=CS.setup(W,H,C.bg);
+const mk=(tag,attrs,kids)=>{const e=el(tag,attrs);(kids||[]).forEach(k=>e.appendChild(k));return e;};
+
+/* ground: three soft colour fields and a dot grid, a few of whose dots twinkle */
+[["g1",C.a2,.34,[.12,.10],.62],["g2",C.a1,.22,[.95,.42],.55],["g3",C.a3,.18,[.35,.98],.60]].forEach(([id,c,o,[cx,cy],r])=>{
+  defs.appendChild(mk("radialGradient",{id,cx,cy,r},[mk("stop",{offset:0,"stop-color":c,"stop-opacity":o}),mk("stop",{offset:1,"stop-color":c,"stop-opacity":0})]));
+  svg.appendChild(el("rect",{x:0,y:0,width:W,height:H,fill:`url(#${id})`})); });
+const dots=[], R=CS.rng(7);
+for(let y=20;y<H;y+=40)for(let x=20;x<W;x+=40){ const d=el("circle",{cx:x,cy:y,r:1.3,fill:"#FFFFFF",opacity:.06}); svg.appendChild(d); if(R()<.09) dots.push([d,R()]); }
+
+/* the accent gradient, shared by the title accent and the stat values */
+defs.appendChild(mk("linearGradient",{id:"acc",x1:0,y1:0,x2:1,y2:0},[mk("stop",{offset:0,"stop-color":C.a1}),mk("stop",{offset:.5,"stop-color":C.a2}),mk("stop",{offset:1,"stop-color":C.a3})]));
+const blur=(id,sd)=>defs.appendChild(mk("filter",{id,x:"-60%",y:"-60%",width:"220%",height:"220%"},[el("feGaussianBlur",{stdDeviation:sd})]));
+blur("glow",20); blur("soft",6); blur("ring",5);
+
+/* kicker + title */
+let y=M+34;
+if(S.kicker){ svg.appendChild(text(M,y,S.kicker,{fill:C.a1,"font-family":"JetBrains Mono","font-size":22,"font-weight":800,"letter-spacing":3})); y+=16; }
+const TS=S.titleSize||64;
+[[S.title,C.ink],[S.titleAccent,"url(#acc)"]].filter(([s])=>s).forEach(([ln,fill])=>{ y+=TS*1.06;
+  const t=text(M,y,ln,{fill,"font-family":"Space Grotesk","font-weight":700,"letter-spacing":-1.5,"data-g":"title"}); svg.appendChild(t); fit(t,W-2*M,TS,34); });
+
+/* lanes of logo tiles */
+const lanes=S.lanes||[], nL=lanes.length, LBL=150, GAP=22;
+const statH=S.stats?.length?150:0, top=y+46, bot=H-86-statH-10;
+const laneH=(bot-top)/Math.max(1,nL), tH=Math.min(146,laneH-24);
+const tiles=[], labels=[], pathPts=[];
+lanes.forEach((ln,li)=>{
+  const ly=top+li*laneH, cy=ly+laneH/2, n=ln.tiles.length;
+  const tW=(W-M-(M+LBL)-GAP*(n-1))/n;
+  const lab=text(M,cy+2,ln.label,{fill:C.soft,"font-family":"JetBrains Mono","font-size":21,"font-weight":800,"letter-spacing":2});
+  const idx=text(M,cy-24,String(li+1).padStart(2,"0"),{fill:C.soft,opacity:.5,"font-family":"JetBrains Mono","font-size":16,"font-weight":700,class:"free"});
+  svg.appendChild(idx); svg.appendChild(lab); fit(lab,LBL-18,21,14); labels.push(lab);
+  const order=li%2?[...Array(n).keys()].reverse():[...Array(n).keys()];
+  ln.tiles.forEach((tl,ti)=>{
+    const b=B[tl.brand]; if(!b) throw new Error("unknown brand "+tl.brand);
+    const x=M+LBL+ti*(tW+GAP), ty=cy-tH/2;
+    tiles.push({li,ti,x,y:ty,w:tW,h:tH,cx:x+tW/2,cy,b,name:tl.name||b.title,order:order.indexOf(ti)});
+  });
+});
+/* snake order: lane 1 left→right, lane 2 right→left, … */
+const seq=[...tiles].sort((p,q)=>p.li-q.li||p.order-q.order);
+seq.forEach(t=>pathPts.push([t.cx,t.cy]));
+let d=`M${pathPts[0][0]} ${pathPts[0][1]}`;
+for(let i=1;i<pathPts.length;i++){ const [x0,y0]=pathPts[i-1],[x1,y1]=pathPts[i];
+  if(y1===y0) d+=` L${x1} ${y1}`;
+  else { const ex=x0>W/2?W-M+26:M+LBL-26; d+=` L${ex} ${y0} L${ex} ${y1} L${x1} ${y1}`; } }
+const path=el("path",{d,fill:"none",stroke:C.a1,"stroke-opacity":.34,"stroke-width":3,"stroke-dasharray":"10 12","stroke-linecap":"round"});
+svg.appendChild(path);
+const LEN=path.getTotalLength();
+/* where along the path each tile sits, so the packet knows whom to light */
+const sAt=(x,y)=>{ let best=0,bd=1e9; for(let s=0;s<=LEN;s+=4){ const p=path.getPointAtLength(s), dd=(p.x-x)**2+(p.y-y)**2; if(dd<bd){bd=dd;best=s;} } return best; };
+
+tiles.forEach(t=>{
+  t.s=sAt(t.cx,t.cy);
+  const g=el("g",{}); svg.appendChild(g);
+  t.halo=el("rect",{x:t.x-10,y:t.y-10,width:t.w+20,height:t.h+20,rx:30,fill:t.b.glow,opacity:.22,filter:"url(#glow)"}); g.appendChild(t.halo);
+  g.appendChild(el("rect",{x:t.x,y:t.y,width:t.w,height:t.h,rx:22,fill:C.tile}));
+  t.ringGlow=el("rect",{x:t.x-2,y:t.y-2,width:t.w+4,height:t.h+4,rx:24,fill:"none",stroke:t.b.glow,"stroke-width":10,opacity:0,filter:"url(#ring)"}); g.appendChild(t.ringGlow);
+  t.ring=el("rect",{x:t.x+2,y:t.y+2,width:t.w-4,height:t.h-4,rx:20,fill:"none",stroke:t.b.glow,"stroke-width":5,opacity:0}); g.appendChild(t.ring);
+  const L=Math.min(t.h*.5,76), lx=t.cx-L/2, ly=t.y+t.h*.13;
+  const logo=document.importNode(new DOMParser().parseFromString(t.b.svg,"image/svg+xml").documentElement,true);
+  const sz=t.b.title==="AWS"?L*1.25:L;
+  logo.setAttribute("x",t.cx-sz/2); logo.setAttribute("y",ly+(L-sz)/2); logo.setAttribute("width",sz); logo.setAttribute("height",sz);
+  logo.setAttribute("preserveAspectRatio","xMidYMid meet"); g.appendChild(logo); t.logo=logo;
+  const nm=text(t.cx,t.y+t.h-18,t.name,{fill:C.tileInk,"text-anchor":"middle","font-family":"Space Grotesk","font-size":22,"font-weight":700,"data-g":"t"+t.li+t.ti});
+  g.appendChild(nm); fit(nm,t.w-20,22,14);
+});
+
+/* a diagonal light band, clipped to the tiles, crosses the grid once per loop */
+const gx0=Math.min(...tiles.map(t=>t.x)), gx1=Math.max(...tiles.map(t=>t.x+t.w)), gy0=Math.min(...tiles.map(t=>t.y)), gy1=Math.max(...tiles.map(t=>t.y+t.h));
+const tc=el("clipPath",{id:"tiles"}); tiles.forEach(t=>tc.appendChild(el("rect",{x:t.x,y:t.y,width:t.w,height:t.h,rx:22}))); defs.appendChild(tc);
+defs.appendChild(mk("linearGradient",{id:"band",x1:0,y1:0,x2:1,y2:0},[mk("stop",{offset:0,"stop-color":"#FFFFFF","stop-opacity":0}),mk("stop",{offset:.5,"stop-color":"#FFFFFF","stop-opacity":.75}),mk("stop",{offset:1,"stop-color":"#FFFFFF","stop-opacity":0})]));
+const sweepG=el("g",{"clip-path":"url(#tiles)"}); svg.appendChild(sweepG);
+const BW=220, band=el("rect",{x:0,y:gy0-400,width:BW,height:gy1-gy0+800,fill:"url(#band)",opacity:.0}); sweepG.appendChild(band);
+
+/* the packet: a bright core, a halo and a short trail */
+const trail=[.05,.1,.16].map((_,i)=>{ const c=el("circle",{r:8-i*2,fill:C.a1,opacity:.5-i*.14,filter:"url(#soft)"}); svg.appendChild(c); return c; });
+const halo=el("circle",{r:22,fill:C.a1,opacity:.55,filter:"url(#glow)"}), core=el("circle",{r:8,fill:"#FFFFFF"});
+svg.appendChild(halo); svg.appendChild(core);
+
+/* stat strip */
+if(statH){ const sy=H-86-statH, n=S.stats.length, cw=(W-2*M)/n;
+  svg.appendChild(el("line",{x1:M,x2:W-M,y1:sy,y2:sy,stroke:"#FFFFFF","stroke-opacity":.12,"stroke-width":2}));
+  S.stats.forEach((st,i)=>{ const x=M+i*cw;
+    if(i) svg.appendChild(el("line",{x1:x,x2:x,y1:sy+26,y2:sy+statH-18,stroke:"#FFFFFF","stroke-opacity":.1,"stroke-width":2}));
+    const v=text(x+(i?28:0),sy+92,st.value,{fill:"url(#acc)","font-family":"Anton","font-size":72,"data-g":"s"+i}); svg.appendChild(v); fit(v,cw-40,72,40);
+    const l=text(x+(i?28:0),sy+128,st.label,{fill:C.soft,"font-family":"JetBrains Mono","font-size":17,"font-weight":700,"letter-spacing":1,"data-g":"s"+i}); svg.appendChild(l); fit(l,cw-40,17,11); }); }
+
+if(S.footnote) svg.appendChild(text(M,H-40,S.footnote,{fill:"#D9E0F2","font-family":"Instrument Serif","font-style":"italic","font-size":32}));
+CS.brand(svg,S,{fill:C.ink,bar:C.a1},W,H-40);
+
+/* frames: one lap of the path per loop, easing in and out so the wrap is invisible */
+const SIG=120;
+window.setFrame=(f,total)=>{
+  const t=f/total, u=t, s=LEN*u;
+  path.setAttribute("stroke-dashoffset",(-u*22*12).toFixed(1));
+  const P=q=>path.getPointAtLength(clamp(q,0,1)*LEN);
+  const fade=Math.min(clamp(u/.04),clamp((1-u)/.04));
+  const p=P(u); core.setAttribute("cx",p.x); core.setAttribute("cy",p.y); halo.setAttribute("cx",p.x); halo.setAttribute("cy",p.y);
+  core.setAttribute("opacity",(.35+.65*fade).toFixed(2)); halo.setAttribute("opacity",(.2+.4*fade).toFixed(2));
+  trail.forEach((c,i)=>{ const q=P(u-.012*(i+1)); c.setAttribute("cx",q.x); c.setAttribute("cy",q.y); c.setAttribute("opacity",((.5-i*.14)*fade).toFixed(2)); });
+  const laneOn=new Array(lanes.length).fill(0);
+  tiles.forEach(tl=>{ const k=Math.exp(-(((s-tl.s)/SIG)**2)); laneOn[tl.li]=Math.max(laneOn[tl.li],k);
+    tl.halo.setAttribute("opacity",(.22+.78*k).toFixed(3)); tl.ring.setAttribute("opacity",(k).toFixed(3)); tl.ringGlow.setAttribute("opacity",(.9*k).toFixed(3));
+    const sc=1+.07*k; tl.logo.setAttribute("transform",`translate(${tl.cx} ${tl.y+tl.h*.13+Math.min(tl.h*.5,76)/2}) scale(${sc.toFixed(3)}) translate(${-tl.cx} ${-(tl.y+tl.h*.13+Math.min(tl.h*.5,76)/2)})`); });
+  labels.forEach((l,i)=>l.setAttribute("fill",laneOn[i]>.4?C.a1:C.soft));
+  const w=clamp((u-.62)/.2), bx=gx0-BW-200+(gx1-gx0+BW+400)*CS.ease.inOut(w);
+  band.setAttribute("x",bx.toFixed(1)); band.setAttribute("opacity",(w>0&&w<1?.55:0).toFixed(2));
+  band.setAttribute("transform",`rotate(18 ${(bx+BW/2).toFixed(1)} ${((gy0+gy1)/2).toFixed(1)})`);
+  dots.forEach(([dd,ph])=>dd.setAttribute("opacity",(.06+.5*Math.max(0,Math.sin(TAU*(t*2+ph)))**6).toFixed(3)));
+};
+});
+</script>

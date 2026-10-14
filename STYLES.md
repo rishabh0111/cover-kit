@@ -1,6 +1,6 @@
 # Cover styles
 
-Thirteen styles for an animated post cover. Pick one per post by its content,
+Fourteen styles for an animated post cover. Pick one per post by its content,
 then check the calendar so the feed never shows the same shape twice in a row.
 Open `styles/gallery.html` to see every style animating, and the upcoming
 posts as a feed (`node check-rotation.js --plan --feed` refreshes that feed).
@@ -27,6 +27,7 @@ thumbnail size before anyone reads a word. The brand mark stays constant.
 | `anatomy` | `styles/anatomy.html` | cream, neo-brutalist | takes one artefact apart: an ID, a token, a URL | ≤ 4 parts |
 | `list` | `styles/list.html` | coral | is a list: "5 lessons", "7 mistakes", a checklist | ≤ 6 items × ≤ 6 words |
 | `timeline` | `styles/timeline.html` | aubergine | happens over dates: an evolution, a migration, an incident | ≤ 6 events |
+| `stack` | `styles/stack.html` | midnight, glowing tiles | is a flagship project, where the stack itself is the claim | ≤ 4 lanes × ≤ 4 logos, ≤ 4 stats |
 
 `flow` is documented in `README.md` and measured in `STYLE.md`. Each file in
 `styles/` documents its own spec keys in its header comment, and
@@ -36,15 +37,20 @@ thumbnail size before anyone reads a word. The brand mark stays constant.
 
 Take the first yes:
 
-1. Is the post **one number**? → `bignumber` (`chart` if it only makes sense on a curve)
-2. **One piece of code or output**? → `terminal` (**one change to code**, before → after? → `diff`)
-3. Is **order** the point? → `sequence` between actors, `timeline` across dates
-4. **One artefact's structure**? → `anatomy`
-5. **A vs B**? → `versus`; **3–4 options, or a benchmark**? → `compare`
-6. **A list** of lessons, mistakes or steps? → `list` (redact the one worth clicking for)
-7. **An opinion or rule** in 8 words? → `poster`
-8. **A model to redraw**? → `sketch`
-9. Several parts interacting → `flow`
+1. Is it a **flagship project**, where the whole stack is the claim? → `stack`
+2. Is the post **one number**? → `bignumber` (`chart` if it only makes sense on a curve)
+3. **One piece of code or output**? → `terminal` (**one change to code**, before → after? → `diff`)
+4. Is **order** the point? → `sequence` between actors, `timeline` across dates
+5. **One artefact's structure**? → `anatomy`
+6. **A vs B**? → `versus`; **3–4 options, or a benchmark**? → `compare`
+7. **A list** of lessons, mistakes or steps? → `list` (redact the one worth clicking for)
+8. **An opinion or rule** in 8 words? → `poster`
+9. **A model to redraw**? → `sketch`
+10. Several parts interacting → `flow`
+
+`stack` is for the few posts that showcase a whole project, not for technique posts:
+used often, a wall of logos stops meaning anything. Its logos come from
+`styles/brand-icons.js`; to add one, edit `build-brand-icons.js` and rerun it.
 
 If the rotation check rejects it, take the second-best fit.
 
@@ -105,6 +111,10 @@ composition, which is what LinkedIn (and most feeds) show if a GIF freezes.
   ink; marks punch as their row lights, and a `redact` bar shimmers.
 - **timeline** — the spine drains and refills to `now`, each dot popping as
   the line reaches it; the `now` dot keeps a ring pulsing.
+- **stack** — a light packet snakes through every tile in lane order along a
+  marching dashed path; each tile flares in its own brand colour as the packet
+  passes and its lane label lights, and a diagonal light band crosses the
+  grid once per loop.
 
 ## Shared by every style
 
